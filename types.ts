@@ -13,7 +13,6 @@ export interface IngredientAnalysis {
   potentialRisks: string[];
   benefits: string[];
   flag: SafetyFlag;
-  sources: { title: string; uri: string }[];
 }
 
 export interface NutritionalEffect {
@@ -31,6 +30,7 @@ export interface AnalysisResult {
   ingredients: IngredientAnalysis[];
   nutritionalInsights: NutritionalEffect[];
   verifiedSources: { title: string; uri: string; type: 'article' | 'video' | 'research' }[];
+  scannedImages?: string[];
 }
 
 export type LoadingState = 'idle' | 'scanning' | 'searching' | 'analyzing' | 'error' | 'camera';

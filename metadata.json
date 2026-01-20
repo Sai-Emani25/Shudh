@@ -1,7 +1,7 @@
 {
-  "name": "Shudh: Pure Ingredient Guardian",
-  "description": "Identify products from ads or photos and uncover hidden toxins using advanced AI and real-time research grounding.",
   "requestFramePermissions": [
     "camera"
-  ]
+  ],
+  "name": "",
+  "description": ""
 }
