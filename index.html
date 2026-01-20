@@ -77,6 +77,8 @@
         font-weight: 600;
         z-index: 2000;
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        max-width: 90%;
+        word-break: break-word;
       }
 
       .glass-card {
@@ -92,11 +94,15 @@
       
       // Error handling for diagnostic purposes
       window.onerror = function(msg, url, line) {
+        console.error("Global Error:", msg, "at", url, ":", line);
         const diag = document.getElementById('error-diagnostic');
         if (diag) {
           diag.style.display = 'block';
-          diag.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-2"></i> ${msg} (Line: ${line})`;
+          diag.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-2"></i> Error: ${msg}`;
         }
+        // Force hide loader on error so user can see diagnostic
+        const loader = document.getElementById('initial-loader');
+        if (loader) loader.style.opacity = '0';
       };
     </script>
 
@@ -117,6 +123,7 @@
     <div id="initial-loader">
       <div class="loader-spin"></div>
       <p style="margin-top: 20px; font-weight: 800; color: #064e3b; letter-spacing: 0.1em; font-size: 11px; text-transform: uppercase;">Clinical Engine Initializing</p>
+      <button onclick="document.getElementById('initial-loader').remove()" style="margin-top: 15px; font-size: 9px; color: #94a3b8; text-decoration: underline; background: none; border: none; cursor: pointer;">Bypass Loader</button>
     </div>
 
     <div id="error-diagnostic"></div>
@@ -124,13 +131,43 @@
     <div class="mesh-bg"></div>
     <div id="root"></div>
 
-    <!-- Data-type module tells Babel to handle imports inside index.tsx -->
-    <script type="text/babel" data-type="module" src="./index.tsx"></script>
+    <!-- Inline Entry Point for better compatibility with GitHub Pages -->
+    <script type="text/babel" data-type="module">
+      import React from 'react';
+      import ReactDOM from 'react-dom/client';
+      import App from './App.tsx';
+
+      const mountApp = () => {
+        try {
+          const rootElement = document.getElementById('root');
+          if (!rootElement) return;
+
+          const root = ReactDOM.createRoot(rootElement);
+          root.render(
+            <React.StrictMode>
+              <App />
+            </React.StrictMode>
+          );
+          console.log("Shudh: App Mounted Successfully");
+        } catch (err) {
+          console.error("Mounting Error:", err);
+        }
+      };
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', mountApp);
+      } else {
+        mountApp();
+      }
+    </script>
     
     <script>
-      // Clean up loader after app mount signal or timeout
-      window.addEventListener('load', () => {
+      // Monitoring script to clear the loader
+      (function() {
+        let attempts = 0;
         const checkMount = setInterval(() => {
+          attempts++;
+          // Check if React has injected content into root
           if (document.querySelector('#root > div')) {
             const loader = document.getElementById('initial-loader');
             if (loader) {
@@ -139,11 +176,14 @@
             }
             clearInterval(checkMount);
           }
+          // Fail-safe: If it takes more than 10 seconds, hide loader anyway
+          if (attempts > 100) {
+            const loader = document.getElementById('initial-loader');
+            if (loader) loader.style.opacity = '0';
+            clearInterval(checkMount);
+          }
         }, 100);
-
-        // Max wait 8 seconds
-        setTimeout(() => clearInterval(checkMount), 8000);
-      });
+      })();
     </script>
   </body>
 </html>
