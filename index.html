@@ -1,16 +1,13 @@
-
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob: 'unsafe-inline' 'unsafe-eval';">
     <title>Shudh - Pure Ingredient Guardian</title>
     
     <!-- Dependencies -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
@@ -40,71 +37,12 @@
           radial-gradient(at 0% 100%, rgba(5, 150, 105, 0.05) 0, transparent 50%);
       }
 
-      /* Initial Loader */
-      #initial-loader {
-        position: fixed;
-        inset: 0;
-        background: white;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        z-index: 1000;
-        transition: opacity 0.5s ease-out;
-      }
-      .loader-spin {
-        width: 40px;
-        height: 40px;
-        border: 3px solid #ecfdf5;
-        border-top-color: #10b981;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-      }
-      @keyframes spin { to { transform: rotate(360deg); } }
-
-      #error-diagnostic {
-        display: none;
-        position: fixed;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: #fff1f2;
-        border: 1px solid #fda4af;
-        padding: 12px 20px;
-        border-radius: 12px;
-        color: #9f1239;
-        font-size: 12px;
-        font-weight: 600;
-        z-index: 2000;
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-        max-width: 90%;
-        word-break: break-word;
-      }
-
       .glass-card {
         background: rgba(255, 255, 255, 0.7);
         backdrop-filter: blur(12px);
         border: 1px solid rgba(255, 255, 255, 0.8);
       }
     </style>
-
-    <script>
-      // Mock process for environmental variables
-      window.process = { env: { API_KEY: "" } };
-      
-      // Error handling for diagnostic purposes
-      window.onerror = function(msg, url, line) {
-        console.error("Global Error:", msg, "at", url, ":", line);
-        const diag = document.getElementById('error-diagnostic');
-        if (diag) {
-          diag.style.display = 'block';
-          diag.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-2"></i> Error: ${msg}`;
-        }
-        // Force hide loader on error so user can see diagnostic
-        const loader = document.getElementById('initial-loader');
-        if (loader) loader.style.opacity = '0';
-      };
-    </script>
 
     <script type="importmap">
 {
@@ -120,70 +58,7 @@
 </script>
   </head>
   <body>
-    <div id="initial-loader">
-      <div class="loader-spin"></div>
-      <p style="margin-top: 20px; font-weight: 800; color: #064e3b; letter-spacing: 0.1em; font-size: 11px; text-transform: uppercase;">Clinical Engine Initializing</p>
-      <button onclick="document.getElementById('initial-loader').remove()" style="margin-top: 15px; font-size: 9px; color: #94a3b8; text-decoration: underline; background: none; border: none; cursor: pointer;">Bypass Loader</button>
-    </div>
-
-    <div id="error-diagnostic"></div>
-
     <div class="mesh-bg"></div>
     <div id="root"></div>
-
-    <!-- Inline Entry Point for better compatibility with GitHub Pages -->
-    <script type="text/babel" data-type="module">
-      import React from 'react';
-      import ReactDOM from 'react-dom/client';
-      import App from './App.tsx';
-
-      const mountApp = () => {
-        try {
-          const rootElement = document.getElementById('root');
-          if (!rootElement) return;
-
-          const root = ReactDOM.createRoot(rootElement);
-          root.render(
-            <React.StrictMode>
-              <App />
-            </React.StrictMode>
-          );
-          console.log("Shudh: App Mounted Successfully");
-        } catch (err) {
-          console.error("Mounting Error:", err);
-        }
-      };
-
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', mountApp);
-      } else {
-        mountApp();
-      }
-    </script>
-    
-    <script>
-      // Monitoring script to clear the loader
-      (function() {
-        let attempts = 0;
-        const checkMount = setInterval(() => {
-          attempts++;
-          // Check if React has injected content into root
-          if (document.querySelector('#root > div')) {
-            const loader = document.getElementById('initial-loader');
-            if (loader) {
-              loader.style.opacity = '0';
-              setTimeout(() => loader.remove(), 500);
-            }
-            clearInterval(checkMount);
-          }
-          // Fail-safe: If it takes more than 10 seconds, hide loader anyway
-          if (attempts > 100) {
-            const loader = document.getElementById('initial-loader');
-            if (loader) loader.style.opacity = '0';
-            clearInterval(checkMount);
-          }
-        }, 100);
-      })();
-    </script>
   </body>
 </html>

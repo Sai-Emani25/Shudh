@@ -1,4 +1,3 @@
-
 import { GoogleGenAI } from "@google/genai";
 import { AnalysisResult } from "../types.ts";
 
@@ -17,7 +16,7 @@ export class GeminiService {
   }
 
   async analyzeIngredients(input: { imageDatas?: string[]; url?: string; productName?: string }): Promise<AnalysisResult> {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
     const systemInstruction = `
       You are "Shudh Lens Pro", a clinical toxicology engine for food safety.
@@ -101,9 +100,9 @@ export class GeminiService {
       const rawText = response.text || "{}";
       const result = JSON.parse(this.cleanJson(rawText)) as AnalysisResult;
 
-      const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
-      if (groundingChunks) {
-        const extraSources = groundingChunks
+      const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
+      if (groundingMetadata?.groundingChunks) {
+        const extraSources = groundingMetadata.groundingChunks
           .filter((c: any) => c.web)
           .map((c: any) => ({
             title: c.web.title,
