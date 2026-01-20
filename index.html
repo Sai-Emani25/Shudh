@@ -6,8 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob: 'unsafe-inline' 'unsafe-eval';">
     <title>Shudh - Pure Ingredient Guardian</title>
+    
+    <!-- Dependencies -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
       
@@ -18,6 +22,7 @@
       body {
         font-family: 'Outfit', sans-serif;
         background-color: #fafdfb;
+        margin: 0;
         overflow-x: hidden;
       }
 
@@ -35,39 +40,45 @@
           radial-gradient(at 0% 100%, rgba(5, 150, 105, 0.05) 0, transparent 50%);
       }
 
-      @keyframes float {
-        0% { transform: translateY(0px) rotate(0deg); }
-        50% { transform: translateY(-20px) rotate(5deg); }
-        100% { transform: translateY(0px) rotate(0deg); }
+      /* Initial Loader */
+      #initial-loader {
+        position: fixed;
+        inset: 0;
+        background: white;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        transition: opacity 0.5s ease-out;
       }
-
-      .floating-icon {
-        animation: float 6s ease-in-out infinite;
+      .loader-spin {
+        width: 40px;
+        height: 40px;
+        border: 3px solid #ecfdf5;
+        border-top-color: #10b981;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
       }
-
-      .floating-icon-delayed {
-        animation: float 8s ease-in-out infinite;
-        animation-delay: 2s;
-      }
-
-      @keyframes focus-ping {
-        0% { transform: scale(1.5); opacity: 0.8; }
-        100% { transform: scale(1); opacity: 0; }
-      }
-
-      .focus-ring {
-        animation: focus-ping 0.4s ease-out forwards;
-      }
+      @keyframes spin { to { transform: rotate(360deg); } }
 
       .glass-card {
         background: rgba(255, 255, 255, 0.7);
         backdrop-filter: blur(12px);
         border: 1px solid rgba(255, 255, 255, 0.8);
       }
+
+      @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
+      }
+      .floating { animation: float 3s ease-in-out infinite; }
     </style>
+
     <script>
-      window.process = { env: {} };
+      window.process = { env: { API_KEY: "" } };
     </script>
+
     <script type="importmap">
 {
   "imports": {
@@ -82,8 +93,28 @@
 </script>
   </head>
   <body>
+    <div id="initial-loader">
+      <div class="loader-spin"></div>
+      <p style="margin-top: 20px; font-weight: 800; color: #064e3b; letter-spacing: 0.1em; font-size: 12px; text-transform: uppercase;">Initializing Shudh Engine</p>
+    </div>
+
     <div class="mesh-bg"></div>
     <div id="root"></div>
-    <script type="module" src="index.tsx"></script>
+
+    <!-- We use data-type="module" and type="text/babel" to allow Babel to transpile TSX in the browser -->
+    <script type="text/babel" data-type="module" src="./index.tsx"></script>
+    
+    <script>
+      // Remove loader once React has had a chance to mount
+      window.addEventListener('load', () => {
+        setTimeout(() => {
+          const loader = document.getElementById('initial-loader');
+          if (loader) {
+            loader.style.opacity = '0';
+            setTimeout(() => loader.remove(), 500);
+          }
+        }, 1500);
+      });
+    </script>
   </body>
 </html>
