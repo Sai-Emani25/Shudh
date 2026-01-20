@@ -62,21 +62,42 @@
       }
       @keyframes spin { to { transform: rotate(360deg); } }
 
+      #error-diagnostic {
+        display: none;
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #fff1f2;
+        border: 1px solid #fda4af;
+        padding: 12px 20px;
+        border-radius: 12px;
+        color: #9f1239;
+        font-size: 12px;
+        font-weight: 600;
+        z-index: 2000;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      }
+
       .glass-card {
         background: rgba(255, 255, 255, 0.7);
         backdrop-filter: blur(12px);
         border: 1px solid rgba(255, 255, 255, 0.8);
       }
-
-      @keyframes float {
-        0%, 100% { transform: translateY(0px); }
-        50% { transform: translateY(-10px); }
-      }
-      .floating { animation: float 3s ease-in-out infinite; }
     </style>
 
     <script>
+      // Mock process for environmental variables
       window.process = { env: { API_KEY: "" } };
+      
+      // Error handling for diagnostic purposes
+      window.onerror = function(msg, url, line) {
+        const diag = document.getElementById('error-diagnostic');
+        if (diag) {
+          diag.style.display = 'block';
+          diag.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-2"></i> ${msg} (Line: ${line})`;
+        }
+      };
     </script>
 
     <script type="importmap">
@@ -95,25 +116,33 @@
   <body>
     <div id="initial-loader">
       <div class="loader-spin"></div>
-      <p style="margin-top: 20px; font-weight: 800; color: #064e3b; letter-spacing: 0.1em; font-size: 12px; text-transform: uppercase;">Initializing Shudh Engine</p>
+      <p style="margin-top: 20px; font-weight: 800; color: #064e3b; letter-spacing: 0.1em; font-size: 11px; text-transform: uppercase;">Clinical Engine Initializing</p>
     </div>
+
+    <div id="error-diagnostic"></div>
 
     <div class="mesh-bg"></div>
     <div id="root"></div>
 
-    <!-- We use data-type="module" and type="text/babel" to allow Babel to transpile TSX in the browser -->
+    <!-- Data-type module tells Babel to handle imports inside index.tsx -->
     <script type="text/babel" data-type="module" src="./index.tsx"></script>
     
     <script>
-      // Remove loader once React has had a chance to mount
+      // Clean up loader after app mount signal or timeout
       window.addEventListener('load', () => {
-        setTimeout(() => {
-          const loader = document.getElementById('initial-loader');
-          if (loader) {
-            loader.style.opacity = '0';
-            setTimeout(() => loader.remove(), 500);
+        const checkMount = setInterval(() => {
+          if (document.querySelector('#root > div')) {
+            const loader = document.getElementById('initial-loader');
+            if (loader) {
+              loader.style.opacity = '0';
+              setTimeout(() => loader.remove(), 500);
+            }
+            clearInterval(checkMount);
           }
-        }, 1500);
+        }, 100);
+
+        // Max wait 8 seconds
+        setTimeout(() => clearInterval(checkMount), 8000);
       });
     </script>
   </body>

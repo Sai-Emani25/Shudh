@@ -16,6 +16,16 @@ const App: React.FC = () => {
   const lastRequestTime = useRef<number>(0);
   const geminiService = useRef(new GeminiService());
 
+  // Deep-linking support
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const query = params.get('check') || params.get('q');
+    if (query && loadingState === 'idle' && !result) {
+      setNameInput(query);
+      handleAnalysis(undefined, undefined, query);
+    }
+  }, []);
+
   const handleAnalysis = async (images?: string[], url?: string, productName?: string) => {
     const now = Date.now();
     if (now - lastRequestTime.current < 4000) {
@@ -27,6 +37,13 @@ const App: React.FC = () => {
     lastRequestTime.current = now;
     setLoadingState('analyzing');
     setError(null);
+
+    // Update URL for shareability if searching by name
+    if (productName) {
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set('check', productName);
+      window.history.pushState({}, '', newUrl);
+    }
     
     try {
       const analysis = await geminiService.current.analyzeIngredients({ 
@@ -83,6 +100,10 @@ const App: React.FC = () => {
     setError(null);
     setUrlInput('');
     setNameInput('');
+    // Clear query params on reset
+    const newUrl = new URL(window.location.href);
+    newUrl.search = '';
+    window.history.pushState({}, '', newUrl);
   };
 
   return (
