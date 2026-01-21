@@ -1,4 +1,3 @@
-
 export enum SafetyFlag {
   RED = 'RED',       // High Hazard
   YELLOW = 'YELLOW', // Caution / Moderate Hazard
@@ -15,6 +14,12 @@ export interface IngredientAnalysis {
   flag: SafetyFlag;
 }
 
+export interface ProductLabel {
+  title: string;
+  impact: string;
+  isPositive: boolean;
+}
+
 export interface NutritionalEffect {
   fact: string;
   effect: string;
@@ -23,14 +28,18 @@ export interface NutritionalEffect {
 
 export interface AnalysisResult {
   productName: string;
-  riskScore: number; // 0 (Pure) to 100 (Toxic)
+  riskScore: number;
   overallFlag: SafetyFlag;
   summary: string;
   longTermEffects: string;
   ingredients: IngredientAnalysis[];
+  productLabels?: ProductLabel[];
   nutritionalInsights: NutritionalEffect[];
-  verifiedSources: { title: string; uri: string; type: 'article' | 'video' | 'research' }[];
+  verifiedSources: { title: string; uri: string; type?: 'article' | 'video' | 'research' }[];
   scannedImages?: string[];
+  // Handling invalid inputs
+  error?: "NOT_FOOD_OR_BLURRY" | "SEARCH_FAILED";
+  errorMessage?: string;
 }
 
 export type LoadingState = 'idle' | 'scanning' | 'searching' | 'analyzing' | 'error' | 'camera';

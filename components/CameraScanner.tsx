@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 
 interface CameraScannerProps {
@@ -22,19 +21,17 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({ onCapture, onClose
       const capabilities = track.getCapabilities() as any;
       const constraints: any = { advanced: [] };
 
-      // Priority 1: Continuous focus for labels
       if (capabilities.focusMode?.includes('continuous')) {
         constraints.advanced.push({ focusMode: 'continuous' });
       } else if (capabilities.focusMode?.includes('manual') && manual) {
         constraints.advanced.push({ focusMode: 'manual' });
       }
 
-      // Apply the constraints if we found compatible modes
       if (constraints.advanced.length > 0) {
         await track.applyConstraints(constraints);
       }
     } catch (err) {
-      console.warn("Advanced camera constraints not supported on this device/browser.");
+      console.warn("Advanced camera constraints not supported.");
     }
   }, [stream]);
 
@@ -77,8 +74,8 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({ onCapture, onClose
 
     let clientX, clientY;
     if ('touches' in e) {
-      clientX = e.touches[0].clientX;
-      clientY = e.touches[0].clientY;
+      clientX = (e as any).touches[0].clientX;
+      clientY = (e as any).touches[0].clientY;
     } else {
       clientX = (e as React.MouseEvent).clientX;
       clientY = (e as React.MouseEvent).clientY;
@@ -87,7 +84,6 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({ onCapture, onClose
     setFocusPoint({ x: clientX, y: clientY });
     applyFocus(true);
     
-    // Clear the focus ring after animation
     setTimeout(() => setFocusPoint(null), 500);
   };
 
@@ -100,7 +96,6 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({ onCapture, onClose
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        // Using high quality for ingredient OCR
         const data = canvas.toDataURL('image/jpeg', 0.95);
         setImages([...images, data]);
       }
@@ -114,7 +109,6 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({ onCapture, onClose
   return (
     <div className="fixed inset-0 z-[110] bg-black flex flex-col items-center">
       <div className="relative w-full h-full flex flex-col max-w-lg mx-auto">
-        {/* Top Header */}
         <div className="p-4 flex justify-between items-center text-white z-20">
           <button onClick={onClose} className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
             <i className="fa-solid fa-xmark"></i>
@@ -125,11 +119,9 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({ onCapture, onClose
           <div className="w-10 h-10"></div>
         </div>
 
-        {/* Viewfinder */}
         <div 
           className="flex-1 relative overflow-hidden bg-slate-900 cursor-crosshair"
           onClick={handleTapToFocus}
-          onTouchStart={handleTapToFocus}
         >
           <video 
             ref={videoRef} 
@@ -138,7 +130,6 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({ onCapture, onClose
             className="absolute inset-0 w-full h-full object-cover"
           />
           
-          {/* Visual Focus Ring */}
           {focusPoint && (
             <div 
               className="absolute pointer-events-none w-16 h-16 border-2 border-emerald-400 rounded-full focus-ring"
@@ -153,17 +144,13 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({ onCapture, onClose
               <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-emerald-500 rounded-bl-xl -mb-1 -ml-1"></div>
               <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-emerald-500 rounded-br-xl -mb-1 -mr-1"></div>
               <div className="absolute top-1/2 left-0 w-full h-0.5 bg-emerald-500/20 blur-sm animate-pulse"></div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-32">Align Ingredients Here</p>
-              </div>
             </div>
           </div>
         </div>
 
-        {/* Captures Reel */}
         <div className="p-6 bg-gradient-to-t from-black via-black/80 to-transparent">
           <div className="flex gap-4 justify-center mb-6">
-            {Array.from({ length: 3 }).map((_, i) => (
+            {[0, 1, 2].map((i) => (
               <div key={i} className="relative w-20 h-20 rounded-2xl border-2 border-white/10 overflow-hidden bg-white/5">
                 {images[i] ? (
                   <>
@@ -185,7 +172,7 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({ onCapture, onClose
           </div>
 
           <div className="flex flex-col gap-4">
-            <div className="flex justify-center items-center gap-12">
+            <div className="flex justify-center items-center">
               <button 
                 onClick={takePhoto}
                 disabled={images.length >= 3}
@@ -198,12 +185,11 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({ onCapture, onClose
             <button 
               onClick={() => images.length > 0 && onCapture(images)}
               disabled={images.length === 0}
-              className={`w-full py-4 rounded-2xl font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 ${
+              className={`w-full py-4 rounded-2xl font-black uppercase tracking-widest transition-all flex items-center justify-center gap-3 ${
                 images.length > 0 ? 'bg-emerald-500 text-white shadow-xl shadow-emerald-500/20' : 'bg-white/10 text-white/30'
               }`}
             >
-              <i className="fa-solid fa-magnifying-glass"></i>
-              Analyze for Purity
+              Analyze Ingredients
             </button>
           </div>
         </div>
