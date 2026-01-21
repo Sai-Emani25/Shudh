@@ -8,7 +8,8 @@ export class GeminiService {
   }
 
   async analyzeIngredients(input: { imageDatas?: string[]; url?: string; productName?: string }): Promise<AnalysisResult> {
-    const ai = new GoogleGenAI({ apiKey: (process.env as any).API_KEY });
+    const apiKey = (process.env.GEMINI_API_KEY || process.env.API_KEY) as string;
+    const ai = new GoogleGenAI({ apiKey });
 
     const systemInstruction = `
       You are "Shudh Lens Pro", a world-class senior clinical toxicologist powered by real-time data.
@@ -72,11 +73,11 @@ export class GeminiService {
     const parts: any[] = [{ text: prompt }];
     if (input.imageDatas && input.imageDatas.length > 0) {
       input.imageDatas.forEach(data => {
-        parts.push({ 
-          inlineData: { 
-            mimeType: "image/jpeg", 
-            data: data.includes('base64,') ? data.split(',')[1] : data 
-          } 
+        parts.push({
+          inlineData: {
+            mimeType: "image/jpeg",
+            data: data.includes('base64,') ? data.split(',')[1] : data
+          }
         });
       });
     }
@@ -96,7 +97,7 @@ export class GeminiService {
       const rawText = response.text || "{}";
       const cleanedJson = this.cleanJson(rawText);
       const result = JSON.parse(cleanedJson) as AnalysisResult;
-      
+
       // Mandatory: Extract sources from grounding chunks
       const groundingMetadata = (response.candidates?.[0] as any)?.groundingMetadata;
       if (groundingMetadata?.groundingChunks) {
@@ -106,7 +107,7 @@ export class GeminiService {
             title: chunk.web.title,
             uri: chunk.web.uri
           }));
-        
+
         // Merge with existing sources if any
         result.verifiedSources = [...(result.verifiedSources || []), ...searchSources].slice(0, 8);
       }
