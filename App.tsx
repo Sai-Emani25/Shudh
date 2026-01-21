@@ -19,12 +19,29 @@ const App: React.FC = () => {
   const isUrl = (str: string) => {
     try {
       const u = new URL(str);
-      // Only allow web protocols to avoid blob: or data: URL issues in history/analysis
       return u.protocol === 'http:' || u.protocol === 'https:';
     } catch {
       return false;
     }
   };
+
+  // Safe History Management
+  const updateHistory = useCallback((params: Record<string, string | null>) => {
+    // history.pushState is prohibited on blob: or data: origins (common in sandboxes)
+    if (typeof window === 'undefined') return;
+    if (window.location.protocol === 'blob:' || window.location.protocol === 'data:') return;
+    
+    try {
+      const newUrl = new URL(window.location.href);
+      Object.entries(params).forEach(([key, value]) => {
+        if (value) newUrl.searchParams.set(key, value);
+        else newUrl.searchParams.delete(key);
+      });
+      window.history.pushState({}, '', newUrl.toString());
+    } catch (e) {
+      console.warn('Browser history update failed:', e);
+    }
+  }, []);
 
   // Deep-linking support
   useEffect(() => {
@@ -47,13 +64,13 @@ const App: React.FC = () => {
     const shareData = {
       title: APP_NAME,
       text: 'Scan your food for hidden toxins with Shudh.',
-      url: window.location.origin,
+      url: window.location.origin + window.location.pathname,
     };
     try {
       if (navigator.share) {
         await navigator.share(shareData);
       } else {
-        await navigator.clipboard.writeText(window.location.origin);
+        await navigator.clipboard.writeText(shareData.url);
         setShareStatus(true);
         setTimeout(() => setShareStatus(false), 2000);
       }
@@ -74,10 +91,9 @@ const App: React.FC = () => {
     setLoadingSubText(url ? 'Locating Product Webpage...' : 'Performing Pre-flight Check...');
     setError(null);
 
-    // Dynamic loading text
     const subtexts = url 
-      ? ['Fetching Web Data...', 'Parsing Page Content...', 'Finding Ingredient Section...', 'Validating Clinical Safety...']
-      : ['Verifying Quality...', 'Extracting Ingredients...', 'Searching FDA Databases...', 'Verifying Toxicity Scores...', 'Generating Forecast...'];
+      ? ['Fetching Web Data...', 'Parsing Page Content...', 'Finding Ingredients...', 'Clinical Verification...']
+      : ['Verifying Quality...', 'Extracting Ingredients...', 'Searching Databases...', 'Verified via Google...', 'Generating Audit...'];
     
     let subIdx = 0;
     const interval = setInterval(() => {
@@ -85,23 +101,11 @@ const App: React.FC = () => {
       setLoadingSubText(subtexts[subIdx]);
     }, 2500);
 
-    // Update Browser History for Deep Linking
-    try {
-      const newUrl = new URL(window.location.href);
-      if (url && isUrl(url)) {
-        newUrl.searchParams.set('url', url);
-        newUrl.searchParams.delete('check');
-      } else if (productName) {
-        newUrl.searchParams.set('check', productName);
-        newUrl.searchParams.delete('url');
-      }
-      // Safety check: Don't push state if the newUrl is a blob (common in sandboxed environments)
-      if (newUrl.protocol !== 'blob:' && newUrl.protocol !== 'data:') {
-        window.history.pushState({}, '', newUrl);
-      }
-    } catch (e) {
-      console.warn('Could not update browser history:', e);
-    }
+    // Persist search in URL
+    updateHistory({
+      url: url || null,
+      check: productName || null
+    });
     
     try {
       const analysis = await geminiService.current.analyzeIngredients({ 
@@ -112,7 +116,7 @@ const App: React.FC = () => {
 
       if (analysis.error === "NOT_FOOD_OR_BLURRY") {
         setError({ 
-          message: analysis.errorMessage || "The analysis failed. Please ensure the link is a food product or the label scan is clear.", 
+          message: analysis.errorMessage || "The audit failed. Ensure you scan a food label clearly.", 
           type: 'INVALID' 
         });
         setLoadingState('error');
@@ -122,7 +126,7 @@ const App: React.FC = () => {
       }
     } catch (err: any) {
       console.error("Analysis Error:", err);
-      setError({ message: err.message || "An unexpected error occurred during analysis.", type: 'GENERIC' });
+      setError({ message: err.message || "Audit interrupted. Check your network or search terms.", type: 'GENERIC' });
       setLoadingState('error');
     } finally {
       clearInterval(interval);
@@ -163,15 +167,7 @@ const App: React.FC = () => {
     setLoadingState('idle');
     setError(null);
     setNameInput('');
-    try {
-      const newUrl = new URL(window.location.href);
-      newUrl.search = '';
-      if (newUrl.protocol !== 'blob:' && newUrl.protocol !== 'data:') {
-        window.history.pushState({}, '', newUrl);
-      }
-    } catch (e) {
-      console.warn('Could not reset browser history:', e);
-    }
+    updateHistory({ url: null, check: null });
   };
 
   const isInputUrl = isUrl(nameInput);
@@ -195,7 +191,7 @@ const App: React.FC = () => {
               <i className={`fa-solid ${shareStatus ? 'fa-check text-emerald-500' : 'fa-share-nodes'}`}></i>
             </button>
             <div className="hidden md:flex bg-emerald-100/50 text-emerald-700 px-4 py-1.5 rounded-full text-[11px] font-black items-center gap-2 uppercase tracking-wider">
-               Clinical Engine: Gemini 3 Pro
+               Clinical Engine: Gemini 3 Flash
             </div>
           </div>
         </div>
@@ -208,7 +204,7 @@ const App: React.FC = () => {
               Is it <span className="text-emerald-600">Pure?</span>
             </h1>
             <p className="text-xl text-slate-500 max-w-xl mx-auto mb-16 font-medium px-4">
-              Deep-scan food labels or web links to unmask hidden toxins.
+              Real-time clinical audit of food ingredients via Google Search.
             </p>
 
             <div className="w-full max-w-2xl glass-card rounded-[3.5rem] p-6 md:p-10 shadow-2xl border-2 border-emerald-50">
@@ -240,12 +236,9 @@ const App: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <i className={`fa-solid ${isInputUrl ? 'fa-link text-blue-500' : 'fa-magnifying-glass text-xs'}`}></i>
                       <span className={`text-[10px] font-black uppercase tracking-widest ${isInputUrl ? 'text-blue-600' : ''}`}>
-                        {isInputUrl ? 'Analyzing Product Link' : 'Product Search / Link'}
+                        {isInputUrl ? 'Verified Link Audit' : 'Product Search / URL'}
                       </span>
                     </div>
-                    <button onClick={handleShare} className="text-[10px] hover:text-emerald-600">
-                      <i className="fa-solid fa-share-nodes"></i>
-                    </button>
                   </div>
                   <form onSubmit={onSearchSubmit}>
                     <input 
@@ -272,29 +265,29 @@ const App: React.FC = () => {
         {(loadingState === 'analyzing' || loadingState === 'scanning') && (
           <div className="fixed inset-0 z-[100] bg-white/95 backdrop-blur-2xl flex flex-col items-center justify-center p-8 text-center">
             <div className="w-24 h-24 border-4 border-emerald-100 border-t-emerald-600 rounded-full animate-spin mb-8"></div>
-            <h2 className="text-3xl font-black text-slate-900 mb-2">Analyzing Every Component</h2>
+            <h2 className="text-3xl font-black text-slate-900 mb-2">Analyzing Every Molecule</h2>
             <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] animate-pulse h-4">{loadingSubText}</p>
           </div>
         )}
 
         {loadingState === 'error' && error && (
-          <div className="max-w-xl mx-auto mt-20 px-4">
+          <div className="max-w-xl mx-auto mt-20 px-4 animate-in fade-in zoom-in-95">
             <div className="glass-card rounded-[4rem] border-2 border-slate-100 p-12 text-center shadow-2xl">
               <div className={`w-24 h-24 mx-auto mb-8 rounded-full flex items-center justify-center text-4xl shadow-inner ${error.type === 'INVALID' ? 'bg-amber-100 text-amber-600' : 'bg-rose-100 text-rose-600'}`}>
-                <i className={`fa-solid ${error.type === 'INVALID' ? 'fa-link-slash' : 'fa-triangle-exclamation'}`}></i>
+                <i className={`fa-solid ${error.type === 'INVALID' ? 'fa-eye-slash' : 'fa-triangle-exclamation'}`}></i>
               </div>
               <h2 className={`text-3xl font-black mb-4 ${error.type === 'INVALID' ? 'text-slate-800' : 'text-rose-900'}`}>
-                {error.type === 'INVALID' ? 'Inconclusive Analysis' : 'Analysis Blocked'}
+                Audit Incomplete
               </h2>
               <p className="text-slate-500 font-medium mb-12 leading-relaxed">
                 {error.message}
               </p>
               <div className="grid gap-3">
                 <button onClick={reset} className="w-full py-5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-3xl font-black uppercase tracking-widest shadow-lg shadow-emerald-600/20 transition-all active:scale-95">
-                  Try Again
+                  Try New Scan
                 </button>
                 <button onClick={reset} className="w-full py-4 text-slate-400 font-bold text-xs uppercase tracking-widest hover:text-slate-600 transition-colors">
-                  Cancel
+                  Cancel Audit
                 </button>
               </div>
             </div>
