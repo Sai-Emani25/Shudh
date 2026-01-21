@@ -8,49 +8,37 @@ export class GeminiService {
   }
 
   async analyzeIngredients(input: { imageDatas?: string[]; url?: string; productName?: string }): Promise<AnalysisResult> {
-    const apiKey = (process.env.GEMINI_API_KEY || process.env.API_KEY) as string;
-    const ai = new GoogleGenAI({ apiKey });
+    const ai = new GoogleGenAI({ apiKey: (process.env as any).API_KEY });
 
     const systemInstruction = `
-      You are "Shudh Lens Pro", a world-class senior clinical toxicologist powered by real-time data.
+      You are "Shudh Clinical Auditor", a clinical toxicologist.
       
-      CORE MISSION:
-      Use 'googleSearch' to verify EVERY claim. If information in the provided images contradicts reputable scientific sources or official manufacturer ingredient lists found via search, YOU MUST OVERWRITE IMAGE DATA WITH SEARCH ENGINE DATA. Accuracy is the highest priority.
+      CRITICAL: Use 'googleSearch' to verify the product: ${input.productName || 'the item in the images'}.
       
-      CRITICAL VALIDATION:
-      1. Detect if the input is a food product. If not, return the standard error JSON.
-      2. Identify "Product Labels" (e.g., Organic, Non-GMO, Bioengineered, Gluten-Free, Fair Trade, Vegan, High-Fructose Warning). Explain the health impact of these labels.
-      
-      STRICT VERIFICATION:
-      - Compare OCR text from images with live search results for the product: ${input.productName || 'the items in the image'}.
-      - Detect hidden chemicals not explicitly readable but verified to be in this product version via search.
+      GROUNDING RULES:
+      1. If the OCR from images is low quality or contradicts known ingredient lists found via Google Search, OVERWRITE with search data. Search is the source of truth for manufacturing.
+      2. Identify "Product Labels" found either on the packaging or verified via search (e.g., "Non-GMO", "Contains Bioengineered Food Ingredients", "Certified Organic", "FDA Warning", "High-Fructose Warning"). 
+      3. For each label, provide its health impact.
+      4. If the product is not food, return standard error JSON.
       
       STRICT PENALTY SCORING (0-100):
-      - 90+: Verified Carcinogens, Endocrine Disruptors, or banned substances (e.g., Titanium Dioxide in some regions).
-      - +25: Harmful emulsifiers (Carrageenan, Polysorbate 80).
-      - +20: Synthetic colors (Red 40, Yellow 5).
+      - 90+: Presence of Banned or Carcinogenic additives (e.g. Red 3, BHA, Potassium Bromate).
+      - +25: Chronic metabolic disruptors (HFCS, Maltodextrin, Carrageenan).
       
       Output ONLY valid JSON.
     `;
 
     const prompt = `
-      Perform a deep toxicological audit. 
-      Product: ${input.productName || 'Content in scans'}
-      Target URL: ${input.url || 'None'}
+      Action: Perform toxicological audit of ${input.productName || 'scanned images'}.
+      Context URL: ${input.url || 'None'}
       
-      Steps:
-      1. Extract visible ingredients from scans.
-      2. SEARCH GOOGLE to confirm the full ingredient list for this product.
-      3. Identify any certifications, warnings, or labels (e.g. "Contains Bioengineered Food Ingredients").
-      4. Correct any image OCR errors using search data.
-      
-      JSON SCHEMA:
+      Required Output JSON:
       {
         "productName": "string",
         "riskScore": number,
         "overallFlag": "RED" | "YELLOW" | "GREEN",
-        "summary": "string",
-        "longTermEffects": "string",
+        "summary": "Verified verdict based on search and visual data.",
+        "longTermEffects": "Detailed forecast.",
         "ingredients": [
           {
             "name": "string",
@@ -63,7 +51,7 @@ export class GeminiService {
           }
         ],
         "productLabels": [
-          { "title": "string", "impact": "string", "isPositive": boolean }
+          { "title": "Label Name", "impact": "Health consequence", "isPositive": boolean }
         ],
         "nutritionalInsights": [],
         "verifiedSources": []
@@ -71,20 +59,20 @@ export class GeminiService {
     `;
 
     const parts: any[] = [{ text: prompt }];
-    if (input.imageDatas && input.imageDatas.length > 0) {
+    if (input.imageDatas) {
       input.imageDatas.forEach(data => {
-        parts.push({
-          inlineData: {
-            mimeType: "image/jpeg",
-            data: data.includes('base64,') ? data.split(',')[1] : data
-          }
+        parts.push({ 
+          inlineData: { 
+            mimeType: "image/jpeg", 
+            data: data.includes('base64,') ? data.split(',')[1] : data 
+          } 
         });
       });
     }
 
     try {
       const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview", // Switched to flash for fast search grounding
+        model: "gemini-3-flash-preview",
         contents: [{ role: 'user', parts }],
         config: {
           systemInstruction,
@@ -97,8 +85,7 @@ export class GeminiService {
       const rawText = response.text || "{}";
       const cleanedJson = this.cleanJson(rawText);
       const result = JSON.parse(cleanedJson) as AnalysisResult;
-
-      // Mandatory: Extract sources from grounding chunks
+      
       const groundingMetadata = (response.candidates?.[0] as any)?.groundingMetadata;
       if (groundingMetadata?.groundingChunks) {
         const searchSources = groundingMetadata.groundingChunks
@@ -107,16 +94,14 @@ export class GeminiService {
             title: chunk.web.title,
             uri: chunk.web.uri
           }));
-
-        // Merge with existing sources if any
-        result.verifiedSources = [...(result.verifiedSources || []), ...searchSources].slice(0, 8);
+        result.verifiedSources = [...(result.verifiedSources || []), ...searchSources].slice(0, 10);
       }
 
       result.scannedImages = input.imageDatas;
       return result;
     } catch (error) {
-      console.error("Gemini Search Error:", error);
-      throw new Error("Unable to verify product data via clinical search. Please check your connection.");
+      console.error("Analysis Failed:", error);
+      throw new Error("Clinical search verification failed. Please try again.");
     }
   }
 }
