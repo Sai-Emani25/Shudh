@@ -12,7 +12,7 @@ const App: React.FC = () => {
   const [nameInput, setNameInput] = useState('');
   const [error, setError] = useState<{ message: string; type?: 'INVALID' | 'GENERIC' } | null>(null);
   const [shareStatus, setShareStatus] = useState(false);
-  
+
   const lastRequestTime = useRef<number>(0);
   const geminiService = useRef(new GeminiService());
 
@@ -30,7 +30,7 @@ const App: React.FC = () => {
     // history.pushState is prohibited on blob: or data: origins (common in sandboxes)
     if (typeof window === 'undefined') return;
     if (window.location.protocol === 'blob:' || window.location.protocol === 'data:') return;
-    
+
     try {
       const newUrl = new URL(window.location.href);
       Object.entries(params).forEach(([key, value]) => {
@@ -48,7 +48,7 @@ const App: React.FC = () => {
     const params = new URLSearchParams(window.location.search);
     const query = params.get('check') || params.get('q');
     const urlParam = params.get('url');
-    
+
     if ((query || urlParam) && loadingState === 'idle' && !result) {
       if (urlParam && isUrl(urlParam)) {
         setNameInput(urlParam);
@@ -85,16 +85,16 @@ const App: React.FC = () => {
       setError({ message: "Analysis in progress. Please wait...", type: 'GENERIC' });
       return;
     }
-    
+
     lastRequestTime.current = now;
     setLoadingState('analyzing');
     setLoadingSubText(url ? 'Locating Product Webpage...' : 'Performing Pre-flight Check...');
     setError(null);
 
-    const subtexts = url 
+    const subtexts = url
       ? ['Fetching Web Data...', 'Parsing Page Content...', 'Finding Ingredients...', 'Clinical Verification...']
       : ['Verifying Quality...', 'Extracting Ingredients...', 'Searching Databases...', 'Verified via Google...', 'Generating Audit...'];
-    
+
     let subIdx = 0;
     const interval = setInterval(() => {
       subIdx = (subIdx + 1) % subtexts.length;
@@ -106,18 +106,18 @@ const App: React.FC = () => {
       url: url || null,
       check: productName || null
     });
-    
+
     try {
-      const analysis = await geminiService.current.analyzeIngredients({ 
-        imageDatas: images, 
-        url, 
-        productName 
+      const analysis = await geminiService.current.analyzeIngredients({
+        imageDatas: images,
+        url,
+        productName
       });
 
       if (analysis.error === "NOT_FOOD_OR_BLURRY") {
-        setError({ 
-          message: analysis.errorMessage || "The audit failed. Ensure you scan a food label clearly.", 
-          type: 'INVALID' 
+        setError({
+          message: analysis.errorMessage || "The audit failed. Ensure you scan a food label clearly.",
+          type: 'INVALID'
         });
         setLoadingState('error');
       } else {
@@ -183,7 +183,7 @@ const App: React.FC = () => {
             <span className="text-2xl font-black text-emerald-950 uppercase tracking-tighter">{APP_NAME}</span>
           </div>
           <div className="flex items-center gap-2">
-             <button 
+            <button
               onClick={handleShare}
               className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-all active:scale-95"
               aria-label="Share App"
@@ -191,7 +191,7 @@ const App: React.FC = () => {
               <i className={`fa-solid ${shareStatus ? 'fa-check text-emerald-500' : 'fa-share-nodes'}`}></i>
             </button>
             <div className="hidden md:flex bg-emerald-100/50 text-emerald-700 px-4 py-1.5 rounded-full text-[11px] font-black items-center gap-2 uppercase tracking-wider">
-               Clinical Engine: Gemini 3 Flash
+              Clinical Engine: Gemini 3 Pro
             </div>
           </div>
         </div>
@@ -208,7 +208,7 @@ const App: React.FC = () => {
             </p>
 
             <div className="w-full max-w-2xl glass-card rounded-[3.5rem] p-6 md:p-10 shadow-2xl border-2 border-emerald-50">
-              <button 
+              <button
                 onClick={() => setLoadingState('camera')}
                 className="w-full p-8 bg-emerald-600 hover:bg-emerald-700 text-white rounded-[2.5rem] shadow-xl flex items-center justify-between transition-all active:scale-[0.98] mb-6"
               >
@@ -232,7 +232,7 @@ const App: React.FC = () => {
                 </div>
 
                 <div className={`transition-all duration-300 p-6 rounded-[2rem] border-2 flex flex-col gap-3 relative ${isInputUrl ? 'bg-blue-50 border-blue-100' : 'bg-slate-50 border-slate-100/50'}`}>
-                   <div className="flex items-center justify-between text-slate-400">
+                  <div className="flex items-center justify-between text-slate-400">
                     <div className="flex items-center gap-2">
                       <i className={`fa-solid ${isInputUrl ? 'fa-link text-blue-500' : 'fa-magnifying-glass text-xs'}`}></i>
                       <span className={`text-[10px] font-black uppercase tracking-widest ${isInputUrl ? 'text-blue-600' : ''}`}>
@@ -241,7 +241,7 @@ const App: React.FC = () => {
                     </div>
                   </div>
                   <form onSubmit={onSearchSubmit}>
-                    <input 
+                    <input
                       type="text"
                       placeholder="Paste link or type name..."
                       value={nameInput}
@@ -256,9 +256,9 @@ const App: React.FC = () => {
         )}
 
         {loadingState === 'camera' && (
-          <CameraScanner 
-            onCapture={(images) => handleAnalysis(images)} 
-            onClose={() => setLoadingState('idle')} 
+          <CameraScanner
+            onCapture={(images) => handleAnalysis(images)}
+            onClose={() => setLoadingState('idle')}
           />
         )}
 

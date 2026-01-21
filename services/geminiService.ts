@@ -14,7 +14,13 @@ export class GeminiService {
   }
 
   async analyzeIngredients(input: { imageDatas?: string[]; url?: string; productName?: string }): Promise<AnalysisResult> {
-    const ai = new GoogleGenAI({ apiKey: (process.env.GEMINI_API_KEY || process.env.API_KEY) as string });
+    const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+
+    if (!apiKey || apiKey === "undefined" || apiKey === "null") {
+      throw new Error("Gemini API Key is missing. Please ensure GEMINI_API_KEY is set in GitHub Secrets or .env file.");
+    }
+
+    const ai = new GoogleGenAI({ apiKey });
 
     // Grounding works best with high-accuracy models for toxicological analysis.
     const systemInstruction = `
