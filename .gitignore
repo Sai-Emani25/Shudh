@@ -20,6 +20,11 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Local build logs and archives
+build-error.log
+build-logs/
+logs.zip
+
 # Editor folders
 .vscode/
 .idea/
