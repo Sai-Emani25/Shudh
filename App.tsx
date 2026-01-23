@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { AnalysisResult, LoadingState } from './types.ts';
 import { GeminiService } from './services/geminiService.ts';
@@ -11,95 +12,33 @@ const App: React.FC = () => {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [nameInput, setNameInput] = useState('');
   const [error, setError] = useState<{ message: string; type?: 'INVALID' | 'GENERIC' | 'AUTH' } | null>(null);
-  const [shareStatus, setShareStatus] = useState(false);
   
-  const lastRequestTime = useRef<number>(0);
   const geminiService = useRef(new GeminiService());
 
   const isUrl = (str: string) => {
     try {
       const u = new URL(str);
       return u.protocol === 'http:' || u.protocol === 'https:';
-    } catch {
-      return false;
-    }
-  };
-
-  const updateHistory = useCallback((params: Record<string, string | null>) => {
-    if (typeof window === 'undefined') return;
-    try {
-      const newUrl = new URL(window.location.href);
-      Object.entries(params).forEach(([key, value]) => {
-        if (value) newUrl.searchParams.set(key, value);
-        else newUrl.searchParams.delete(key);
-      });
-      window.history.pushState({}, '', newUrl.toString());
-    } catch (e) {
-      console.warn('History sync failed:', e);
-    }
-  }, []);
-
-  // Handle auto-analysis when shared links are opened
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const query = params.get('check') || params.get('q');
-    const urlParam = params.get('url');
-    
-    if ((query || urlParam) && loadingState === 'idle' && !result) {
-      if (urlParam && isUrl(urlParam)) {
-        setNameInput(urlParam);
-        handleAnalysis(undefined, urlParam, undefined);
-      } else if (query) {
-        setNameInput(query);
-        handleAnalysis(undefined, undefined, query);
-      }
-    }
-  }, []);
-
-  const handleShare = async () => {
-    const shareData = {
-      title: APP_NAME,
-      text: result 
-        ? `View the clinical toxicological report for ${result.productName}.`
-        : 'Scan your food for hidden chemicals with Shudh.',
-      url: window.location.href, 
-    };
-    try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-      } else {
-        await navigator.clipboard.writeText(shareData.url);
-        setShareStatus(true);
-        setTimeout(() => setShareStatus(false), 2000);
-      }
-    } catch (err) {
-      console.warn('Share failed', err);
-    }
+    } catch { return false; }
   };
 
   const handleAnalysis = async (images?: string[], url?: string, productName?: string) => {
-    const now = Date.now();
-    if (now - lastRequestTime.current < 2000) return;
-    
-    lastRequestTime.current = now;
     setLoadingState('analyzing');
-    setLoadingSubText('Connecting to clinical databases...');
+    setLoadingSubText('Initializing clinical sensors...');
     setError(null);
 
     const subtexts = [
-      'Initializing Pro-Sensors...', 
-      'Calibrating Reasoning Engine...', 
-      'Injecting Search Grounding...', 
-      'Parsing Toxicology Indices...'
+      'Scanning molecular profiles...', 
+      'Consulting toxicological indices...', 
+      'Injecting search grounding...', 
+      'Verifying long-term health impact...'
     ];
     let subIdx = 0;
     const interval = setInterval(() => {
       subIdx = (subIdx + 1) % subtexts.length;
       setLoadingSubText(subtexts[subIdx]);
-    }, 2500);
+    }, 3000);
 
-    updateHistory({ url: url || null, check: productName || null });
-    
     try {
       const analysis = await geminiService.current.analyzeIngredients({ 
         imageDatas: images, 
@@ -108,57 +47,35 @@ const App: React.FC = () => {
       });
 
       if (analysis.error === "NOT_FOOD_OR_BLURRY") {
-        setError({ 
-          message: analysis.errorMessage || "Audit failed to identify a valid food product. Please scan again.", 
-          type: 'INVALID' 
-        });
+        setError({ message: "Failed to read label. Please ensure the image is clear and contains ingredients.", type: 'INVALID' });
         setLoadingState('error');
       } else {
         setResult(analysis);
         setLoadingState('idle');
       }
     } catch (err: any) {
-      console.error("Analysis Error:", err);
-      if (err.message?.includes("API key") || err.message?.includes("not found")) {
-        setError({ 
-          message: "Clinical Engine disconnected. Please ensure your API_KEY is correctly set in your environment variables.", 
-          type: 'AUTH' 
-        });
-      } else {
-        setError({ 
-          message: err.message || "An unexpected error occurred during the clinical audit.", 
-          type: 'GENERIC' 
-        });
-      }
+      setError({ message: err.message || "An unexpected error occurred during analysis.", type: 'GENERIC' });
       setLoadingState('error');
     } finally {
       clearInterval(interval);
     }
   };
 
-  const processImageFile = useCallback(async (file: File) => {
-    if (file.size > 5 * 1024 * 1024) {
-      setError({ message: 'File too large. Max 5MB.', type: 'GENERIC' });
-      setLoadingState('error');
-      return;
-    }
-    setLoadingState('scanning');
-    const reader = new FileReader();
-    reader.onload = (e) => handleAnalysis([e.target?.result as string]);
-    reader.readAsDataURL(file);
-  }, []);
-
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) processImageFile(file);
+    if (file) {
+      setLoadingState('scanning');
+      const reader = new FileReader();
+      reader.onload = (e) => handleAnalysis([e.target?.result as string]);
+      reader.readAsDataURL(file);
+    }
   };
 
   const onSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const val = nameInput.trim();
-    if (!val) return;
-    if (isUrl(val)) handleAnalysis(undefined, val, undefined);
-    else handleAnalysis(undefined, undefined, val);
+    if (!nameInput.trim()) return;
+    if (isUrl(nameInput)) handleAnalysis(undefined, nameInput, undefined);
+    else handleAnalysis(undefined, undefined, nameInput);
   };
 
   const reset = () => {
@@ -166,28 +83,21 @@ const App: React.FC = () => {
     setLoadingState('idle');
     setError(null);
     setNameInput('');
-    updateHistory({ url: null, check: null });
   };
 
   return (
     <div className="min-h-screen text-slate-900 pb-20">
-      <header className="sticky top-0 z-50 bg-white/60 backdrop-blur-xl border-b border-emerald-50/50">
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-emerald-50">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5 cursor-pointer" onClick={reset}>
-            <div className="w-10 h-10 bg-emerald-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
-              <i className="fa-solid fa-leaf text-lg"></i>
+          <div className="flex items-center gap-3 cursor-pointer" onClick={reset}>
+            <div className="w-9 h-9 bg-emerald-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-200">
+              <i className="fa-solid fa-leaf text-sm"></i>
             </div>
-            <span className="text-2xl font-black text-emerald-950 uppercase tracking-tighter">{APP_NAME}</span>
+            <span className="text-xl font-extrabold text-emerald-950 tracking-tighter uppercase">{APP_NAME}</span>
           </div>
-          <div className="flex items-center gap-2">
-             <button 
-              onClick={handleShare}
-              className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-all active:scale-95"
-            >
-              <i className={`fa-solid ${shareStatus ? 'fa-check text-emerald-500' : 'fa-share-nodes'}`}></i>
-            </button>
-            <div className="hidden md:flex bg-emerald-100/50 text-emerald-700 px-4 py-1.5 rounded-full text-[11px] font-black items-center gap-2 uppercase tracking-wider">
-               Clinical Guard: Online
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-100">
+              Clinical Guard Active
             </div>
           </div>
         </div>
@@ -195,53 +105,49 @@ const App: React.FC = () => {
 
       <main className="max-w-6xl mx-auto px-4">
         {!result && loadingState === 'idle' && (
-          <div className="pt-16 md:pt-24 flex flex-col items-center text-center">
-            <h1 className="text-6xl md:text-8xl font-black text-slate-900 mb-6 tracking-tighter leading-[0.9]">
-              Is it <span className="text-emerald-600">Shudh?</span>
+          <div className="pt-20 md:pt-32 flex flex-col items-center text-center">
+            <h1 className="text-5xl md:text-8xl font-black text-slate-900 mb-6 tracking-tighter leading-none">
+              Is it truly <span className="text-emerald-600">Shudh?</span>
             </h1>
-            <p className="text-xl text-slate-500 max-w-xl mx-auto mb-16 font-medium px-4">
-              Search-grounded clinical audit for toxic food ingredients.
+            <p className="text-lg md:text-xl text-slate-500 max-w-xl mx-auto mb-16 font-medium">
+              A clinical toxicological audit for your food. Unmask nasty chemicals hidden behind complex names.
             </p>
 
-            <div className="w-full max-w-2xl glass-card rounded-[3.5rem] p-6 md:p-10 shadow-2xl border-2 border-emerald-50">
+            <div className="w-full max-w-2xl glass-card rounded-[3rem] p-6 md:p-8 shadow-2xl border-2 border-white">
               <button 
                 onClick={() => setLoadingState('camera')}
-                className="w-full p-8 bg-emerald-600 hover:bg-emerald-700 text-white rounded-[2.5rem] shadow-xl flex items-center justify-between transition-all active:scale-[0.98] mb-6"
+                className="w-full p-8 bg-emerald-600 hover:bg-emerald-700 text-white rounded-3xl shadow-xl flex items-center justify-between transition-all active:scale-[0.98] mb-6 group"
               >
-                <div className="flex items-center gap-6">
-                  <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-3xl">
-                    <i className="fa-solid fa-camera-retro"></i>
+                <div className="flex items-center gap-5">
+                  <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-2xl group-hover:rotate-12 transition-transform">
+                    <i className="fa-solid fa-camera"></i>
                   </div>
                   <div className="text-left">
-                    <span className="block text-sm font-bold opacity-60 uppercase tracking-widest mb-1">Deep Scan</span>
-                    <span className="block text-2xl font-black tracking-tight">Scan Labels</span>
+                    <span className="block text-[10px] font-black opacity-60 uppercase tracking-widest mb-1">Deep Analysis</span>
+                    <span className="block text-xl font-bold tracking-tight">Scan Ingredient List</span>
                   </div>
                 </div>
-                <i className="fa-solid fa-chevron-right text-xl opacity-30"></i>
+                <i className="fa-solid fa-chevron-right text-lg opacity-30"></i>
               </button>
 
-              <div className="grid md:grid-cols-2 gap-6 mb-6">
-                <div className="relative group bg-slate-50 hover:bg-emerald-50 transition-colors p-8 rounded-[2rem] border-2 border-slate-100/50 flex flex-col items-center justify-center gap-3 overflow-hidden">
-                  <input type="file" accept="image/*" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
-                  <i className="fa-solid fa-cloud-arrow-up text-2xl text-slate-400"></i>
-                  <span className="text-xs font-black uppercase tracking-widest text-slate-500">Upload Data</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="relative bg-slate-50 hover:bg-slate-100 transition-colors p-6 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2">
+                  <input type="file" accept="image/*" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
+                  <i className="fa-solid fa-upload text-slate-400"></i>
+                  <span className="text-[10px] font-black uppercase text-slate-500">Upload Photo</span>
                 </div>
 
-                <div className={`transition-all duration-300 p-6 rounded-[2rem] border-2 flex flex-col gap-3 relative ${isUrl(nameInput) ? 'bg-blue-50 border-blue-100' : 'bg-slate-50 border-slate-100/50'}`}>
-                   <div className="flex items-center justify-between text-slate-400">
-                    <div className="flex items-center gap-2">
-                      <i className="fa-solid fa-magnifying-glass text-xs"></i>
-                      <span className="text-[10px] font-black uppercase tracking-widest">Search Product</span>
-                    </div>
-                  </div>
-                  <form onSubmit={onSearchSubmit}>
+                <div className="bg-slate-50 p-4 rounded-2xl border-2 border-slate-100 flex flex-col gap-2">
+                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Search Product</span>
+                  <form onSubmit={onSearchSubmit} className="flex items-center gap-2">
                     <input 
                       type="text"
-                      placeholder="Product or URL..."
+                      placeholder="Name or URL..."
                       value={nameInput}
                       onChange={(e) => setNameInput(e.target.value)}
                       className="bg-transparent text-sm font-bold outline-none w-full placeholder:text-slate-300"
                     />
+                    <button type="submit" className="text-emerald-600"><i className="fa-solid fa-arrow-right"></i></button>
                   </form>
                 </div>
               </div>
@@ -257,36 +163,30 @@ const App: React.FC = () => {
         )}
 
         {(loadingState === 'analyzing' || loadingState === 'scanning') && (
-          <div className="fixed inset-0 z-[100] bg-white/95 backdrop-blur-2xl flex flex-col items-center justify-center p-8 text-center">
-            <div className="w-24 h-24 border-4 border-emerald-100 border-t-emerald-600 rounded-full animate-spin mb-8"></div>
-            <h2 className="text-3xl font-black text-slate-900 mb-2">Clinical Deep-Audit</h2>
-            <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] animate-pulse h-4">{loadingSubText}</p>
+          <div className="fixed inset-0 z-[100] bg-white/95 backdrop-blur-2xl flex flex-col items-center justify-center p-8 text-center animate-in fade-in">
+            <div className="relative w-24 h-24 mb-10">
+              <div className="absolute inset-0 border-4 border-emerald-100 rounded-full"></div>
+              <div className="absolute inset-0 border-4 border-emerald-600 rounded-full border-t-transparent animate-spin"></div>
+              <div className="absolute inset-0 flex items-center justify-center text-emerald-600 animate-pulse">
+                <i className="fa-solid fa-dna text-2xl"></i>
+              </div>
+            </div>
+            <h2 className="text-3xl font-black text-slate-900 mb-3 tracking-tighter">Clinical Audit in Progress</h2>
+            <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] h-4">{loadingSubText}</p>
           </div>
         )}
 
         {loadingState === 'error' && error && (
-          <div className="max-w-xl mx-auto mt-20 px-4 animate-in fade-in zoom-in-95">
-            <div className="glass-card rounded-[4rem] border-2 border-slate-100 p-12 text-center shadow-2xl">
-              <div className={`w-24 h-24 mx-auto mb-8 rounded-full flex items-center justify-center text-4xl shadow-inner ${error.type === 'AUTH' ? 'bg-amber-50 text-amber-500' : 'bg-rose-50 text-rose-500'}`}>
-                <i className={`fa-solid ${error.type === 'AUTH' ? 'fa-key' : 'fa-triangle-exclamation'}`}></i>
+          <div className="max-w-lg mx-auto mt-20 px-4 animate-in fade-in zoom-in-95">
+            <div className="glass-card rounded-[3rem] border-2 border-rose-50 p-10 text-center shadow-2xl">
+              <div className="w-20 h-20 mx-auto mb-6 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center text-3xl">
+                <i className="fa-solid fa-triangle-exclamation"></i>
               </div>
-              <h2 className="text-3xl font-black mb-4 text-slate-900">{error.type === 'AUTH' ? 'Clinical Auth Error' : 'Audit Interrupted'}</h2>
-              <p className="text-slate-500 font-medium mb-12 leading-relaxed">{error.message}</p>
-              <div className="grid gap-3">
-                <button onClick={reset} className="w-full py-5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-3xl font-black uppercase tracking-widest shadow-lg shadow-emerald-600/20 transition-all active:scale-95">
-                  Try Again
-                </button>
-                {error.type === 'AUTH' && (
-                  <a 
-                    href="https://ai.google.dev/gemini-api/docs/billing" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-xs font-bold text-emerald-600 hover:text-emerald-700 underline"
-                  >
-                    Setup API Environment Settings
-                  </a>
-                )}
-              </div>
+              <h2 className="text-2xl font-black mb-3 text-slate-900">Audit Interrupted</h2>
+              <p className="text-slate-500 font-medium mb-10 text-sm leading-relaxed">{error.message}</p>
+              <button onClick={reset} className="w-full py-4 bg-slate-900 hover:bg-black text-white rounded-2xl font-bold transition-all active:scale-95 shadow-xl">
+                Return to Lab
+              </button>
             </div>
           </div>
         )}
