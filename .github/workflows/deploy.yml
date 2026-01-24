@@ -40,6 +40,7 @@ jobs:
         run: npm run build
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ROLLUP_SKIP_NODEJS_NATIVE: true
 
       - name: Upload build artifact
         uses: actions/upload-pages-artifact@v3
