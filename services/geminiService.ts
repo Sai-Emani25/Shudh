@@ -3,51 +3,49 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { AnalysisResult, SafetyFlag, ProductCategory } from "../types.ts";
 
 export class GeminiService {
+  private extractJson(text: string): string {
+    // Remove markdown code blocks if present
+    return text.replace(/```json\n?|```/g, "").trim();
+  }
+
   async analyzeIngredients(input: { 
     imageDatas?: string[]; 
     url?: string; 
     productName?: string;
     category: ProductCategory;
   }): Promise<AnalysisResult> {
+    if (!process.env.API_KEY || process.env.API_KEY === 'your_gemini_api_key_here') {
+      throw new Error("MISSING_API_KEY");
+    }
+
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
     const getSystemInstruction = (category: ProductCategory) => {
-      const base = `You are the "Shudh Global Health Auditor". Your objective is to perform a rigorous, clinical fact-check of ingredients.
+      // Streamlined base for maximum speed across all modalities
+      const base = `Act as the "Shudh Clinical Auditor". Mode: High-Speed Binary Fact-Check.
       
-      CRITICAL RULE 1 (Comprehensive Audit): If the provided images are partial, blurry, or missing sections, you MUST use the googleSearch tool to find the FULL, OFFICIAL ingredient list for the identified product. Do not guess; search and supplement missing data.
+      CORE AUDIT PROTOCOL:
+      1. ID: Extract Brand/Product from image/context.
+      2. SEARCH: If scan is partial, use googleSearch to find full ingredient specs immediately.
+      3. GROUND: Verify safety against IARC, EWG, PubChem, and FDA/EU databases. 
+      4. IGNORE: All label claims (Natural/Safe/Clean). Focus ONLY on molecular toxicity.
       
-      CRITICAL RULE 2 (Identification): Identify the Brand and EXACT Product Variant from the packaging (e.g., "Doritos Nacho Cheese" vs just "Chips"). The "productName" must be specific.
+      CATEGORY SPECIFICS:
+      - FOOD: Flag UPF markers, artificial dyes, synthetic sweeteners.
+      - COSMETICS: Flag Endocrine Disruptors, PFAS, synthetic fragrance, Parabens.
+      - MEDICINE: Flag Active vs Inactive hazards, Talc, TiO2, synthetic colorants.
       
-      CRITICAL RULE 3 (Zero Trust): Never trust marketing labels like "All Natural" or "Physician Recommended". If your clinical search finds hazardous chemicals not explicitly mentioned in a positive light on the label, you MUST flag them.
+      SCORING (0-100):
+      - Carcinogen: +40 | EDC: +30 | Neurotoxin: +25 | Banned in EU: +20 | Artificial Dye: +10.`;
       
-      GROUNDING REQUIREMENT: Use googleSearch to:
-      1. Cross-reference the identified product with databases like EWG Skin Deep, FDA GRAS, PubChem, and IARC.
-      2. If an ingredient is missing from the scan but is standard for that specific product variant, include it in the audit.
-      3. Verify if any ingredient is banned or restricted in the EU, Canada, or California (Prop 65).
-
-      PROS & CONS: For EVERY ingredient, provide at least 2 potential health risks (Cons) and its functional purpose (Pros) based on search results.`;
-      
-      switch(category) {
-        case ProductCategory.COSMETICS:
-          return `${base}
-          CATEGORY FOCUS: Cosmetics. Verify safety for skin types. Search for Parabens, Phthalates, and synthetic fragrances.`;
-        case ProductCategory.MEDICINE:
-          return `${base}
-          CATEGORY FOCUS: Pharmaceuticals. Identify Active Ingredients vs Fillers. Search for Talc, TiO2, and Dye safety.`;
-        default: // FOOD
-          return `${base}
-          CATEGORY FOCUS: Food. Verify Ultra-Processed (UPF) status. Search for artificial dyes (Red 40, etc.), BHA/BHT, and synthetic sweeteners.`;
-      }
+      return base;
     };
 
     const prompt = `
-      Clinical Audit Command: 
-      1. ANALYZE IMAGES: Identify product and extract visible ingredients.
-      2. SUPPLEMENT: Use Google Search to find any ingredients or warning labels typically associated with this specific product that might have been missed in the scan.
-      3. VERIFY: Fact-check safety of every chemical.
-      4. SCORE: Calculate risk score (0-100) based on clinical toxicity.
-      
-      Hint (User Input): ${input.productName || 'Identify from images'}
+      AUDIT TASK:
+      1. Analyze frames/text: ${input.productName || 'Identify from images'}.
+      2. Supplement missing clinical data via Google Search.
+      3. Output JSON according to schema.
     `;
 
     const parts: any[] = [{ text: prompt }];
@@ -64,12 +62,13 @@ export class GeminiService {
 
     try {
       const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview", // Flash for low latency
-        contents: [{ role: 'user', parts }],
+        model: "gemini-3-flash-preview",
+        contents: { parts },
         config: {
           systemInstruction: getSystemInstruction(input.category),
           tools: [{ googleSearch: {} }],
-          temperature: 0.1, // Slight temperature for better reasoning
+          temperature: 0, // Deterministic = Faster
+          topP: 0.1,      // Focus search path
           responseMimeType: "application/json",
           responseSchema: {
             type: Type.OBJECT,
@@ -113,9 +112,11 @@ export class GeminiService {
         }
       });
 
-      const result = JSON.parse(response.text) as AnalysisResult;
+      const cleanJson = this.extractJson(response.text || "");
+      const result = JSON.parse(cleanJson) as AnalysisResult;
       result.category = input.category;
       
+      result.verifiedSources = [];
       const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
       if (groundingMetadata?.groundingChunks) {
         result.verifiedSources = groundingMetadata.groundingChunks
@@ -129,7 +130,7 @@ export class GeminiService {
       result.scannedImages = input.imageDatas;
       return result;
     } catch (error: any) {
-      console.error("Audit Failure:", error);
+      console.error("Gemini Audit Detailed Error:", error);
       throw error;
     }
   }

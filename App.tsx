@@ -94,7 +94,20 @@ const App: React.FC = () => {
         setLoadingState('idle');
       }
     } catch (err: any) {
-      setError({ message: "Clinical connection error. Please verify your environment and try again." });
+      console.error("Audit Terminated Reason:", err);
+      let errorMessage = "Clinical connection error. Please verify your environment and try again.";
+      
+      if (err.message === "MISSING_API_KEY") {
+        errorMessage = "API Key not found. Please ensure your .env file is configured correctly.";
+      } else if (err.message?.includes("401")) {
+        errorMessage = "Invalid API Key. Please verify your Gemini API credentials.";
+      } else if (err.message?.includes("429")) {
+        errorMessage = "Rate limit exceeded. Please wait a moment before trying again.";
+      } else if (err.message?.includes("SyntaxError")) {
+        errorMessage = "Analysis report generation failed. The clinical data was malformed.";
+      }
+
+      setError({ message: errorMessage });
       setLoadingState('error');
     }
   };
@@ -306,7 +319,10 @@ const App: React.FC = () => {
              <div className="w-24 h-24 bg-rose-50 text-rose-500 rounded-[2rem] flex items-center justify-center text-4xl mx-auto mb-10 shadow-inner"><i className="fa-solid fa-triangle-exclamation"></i></div>
              <h2 className="text-4xl font-black mb-4 tracking-tight text-slate-900 uppercase leading-none">Audit Terminated</h2>
              <p className="text-slate-500 font-medium mb-16 text-xl px-4">{error.message}</p>
-             <button onClick={reset} className="px-16 py-6 bg-slate-950 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs shadow-2xl hover:bg-black active:scale-95 transition-all">Retry Bio-Scan</button>
+             <div className="flex flex-col gap-4 items-center">
+               <button onClick={reset} className="px-16 py-6 bg-slate-950 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs shadow-2xl hover:bg-black active:scale-95 transition-all w-fit">Retry Bio-Scan</button>
+               <p className="text-[10px] text-slate-300 uppercase tracking-widest">Check the browser console for technical logs.</p>
+             </div>
           </div>
         )}
 
