@@ -27,7 +27,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: npm
+          # Disable npm cache so a lockfile is not required
 
       - name: Install dependencies
         run: npm install
