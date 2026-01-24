@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 
 interface CameraScannerProps {
@@ -12,6 +13,13 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({ onCapture, onClose
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [focusPoint, setFocusPoint] = useState<{ x: number, y: number } | null>(null);
   const [isFocusing, setIsFocusing] = useState(false);
+
+  const stopStream = useCallback(() => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+  }, [stream]);
 
   const applyFocus = useCallback(async (manual: boolean = false) => {
     if (!stream) return;
@@ -65,7 +73,10 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({ onCapture, onClose
     }
     startCamera();
     return () => {
-      stream?.getTracks().forEach(track => track.stop());
+      // Ensure cleanup on unmount
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
     };
   }, []);
 
@@ -126,12 +137,24 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({ onCapture, onClose
     setImages(images.filter((_, i) => i !== index));
   };
 
+  const handleFinalize = () => {
+    if (images.length > 0) {
+      stopStream(); // Close camera tracks before moving to analysis
+      onCapture(images);
+    }
+  };
+
+  const handleCancel = () => {
+    stopStream(); // Close camera tracks before exiting camera UI
+    onClose();
+  };
+
   return (
     <div className="fixed inset-0 z-[110] bg-black flex flex-col items-center select-none">
       <div className="relative w-full h-full flex flex-col max-w-lg mx-auto">
         {/* Header Controls */}
         <div className="p-4 flex justify-between items-center text-white z-20">
-          <button onClick={onClose} className="w-10 h-10 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center transition-all active:scale-90">
+          <button onClick={handleCancel} className="w-10 h-10 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center transition-all active:scale-90">
             <i className="fa-solid fa-xmark"></i>
           </button>
           <div className="flex flex-col items-center">
@@ -225,7 +248,7 @@ export const CameraScanner: React.FC<CameraScannerProps> = ({ onCapture, onClose
             </div>
             
             <button 
-              onClick={() => images.length > 0 && onCapture(images)}
+              onClick={handleFinalize}
               disabled={images.length === 0}
               className={`w-full py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] transition-all flex items-center justify-center gap-3 ${
                 images.length > 0 
