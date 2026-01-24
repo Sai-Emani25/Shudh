@@ -1,39 +1,52 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { AnalysisResult, SafetyFlag } from "../types.ts";
+import { AnalysisResult, SafetyFlag, ProductCategory } from "../types.ts";
 
 export class GeminiService {
-  /**
-   * Performs an advanced toxicological audit of food ingredients.
-   * Utilizes Gemini 3 Pro with Search Grounding to identify hidden chemicals,
-   * ultra-processed additives, and potential health disruptors.
-   */
-  async analyzeIngredients(input: { imageDatas?: string[]; url?: string; productName?: string }): Promise<AnalysisResult> {
+  async analyzeIngredients(input: { 
+    imageDatas?: string[]; 
+    url?: string; 
+    productName?: string;
+    category: ProductCategory;
+  }): Promise<AnalysisResult> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-    const systemInstruction = `
-      You are the "Shudh Clinical Toxicologist". Your mission is to identify "nasty chemicals" in food products that pose health risks even in small doses.
+    const getSystemInstruction = (category: ProductCategory) => {
+      const base = `You are the "Shudh Global Health Auditor". Your objective is to perform a clinical toxicological audit. To ensure 100% consistency and prevent hallucination, you MUST follow this strict additive scoring rubric:
       
-      CRITICAL FOCUS AREAS:
-      1. Endocrine Disruptors (e.g., BPA, Phthalates in packaging, certain preservatives).
-      2. Carcinogens & Mutagens (e.g., Artificial dyes like Red 40, Yellow 5, Potassium Bromate).
-      3. Neurotoxins & Gut-Disruptors (e.g., Carrageenan, MSG, Aspartame, HFCS).
-      4. Ultra-Processed Markers (e.g., Maltodextrin, Emulsifiers).
-
-      MANDATORY: Use 'googleSearch' to verify the specific product and its latest reported ingredient list.
+      SCORING RUBRIC (Base Score 0, Max 100):
+      - Presence of Confirmed Carcinogen (IARC Group 1/2A): +40 points
+      - Confirmed Endocrine Disruptor (EDC): +30 points
+      - Known Neurotoxin: +25 points
+      - High Hazard Preservative (BHA/BHT/Parabens): +20 points
+      - Artificial Dye/Synthetic Fragrance: +10 points
+      - Moderate Allergen/Irritant: +5 points
       
-      RULES:
-      - If the scan is blurry or not a food item, set error to "NOT_FOOD_OR_BLURRY".
-      - Provide a "Risk Score" from 0 (Pure) to 100 (Toxic). 
-      - Scoring Logic: 80+ for banned/restricted additives; 50-79 for chronic health disruptors; <50 for general processing.
-      - Extract specific Product Labels (e.g., "Bioengineered Ingredients", "Contains Phthalates").
-    `;
+      REQUIRED SEARCH STEPS:
+      1. Search for "[Ingredient Name] safety profile" on EWG Skin Deep, FDA, or PubChem.
+      2. If multiple sources conflict, prioritize clinical research over consumer blogs.
+      3. Do NOT invent risks; if an ingredient is "Generally Recognized as Safe" (GRAS), its score impact is 0.`;
+      
+      switch(category) {
+        case ProductCategory.COSMETICS:
+          return `${base}
+          CATEGORY FOCUS: Cosmetics & Personal Care. Focus on D4/D5 Siloxanes, PFAS, and Phthalates. Ensure you look up concentrations where available.`;
+        case ProductCategory.MEDICINE:
+          return `${base}
+          CATEGORY FOCUS: Pharmaceuticals. Distinguish clearly between the "Active Ingredient" (necessary) and "Excipients" (fillers). Toxic fillers like Talc (if asbestos-linked) or Titanium Dioxide (E171) should be flagged.`;
+        default: // FOOD
+          return `${base}
+          CATEGORY FOCUS: Food & Beverages. Focus on ultra-processed markers (UPF), emulsifiers (Polysorbate 80), and specific additives like Red 40 or High Fructose Corn Syrup.`;
+      }
+    };
 
     const prompt = `
-      Audit Task: Analyze this product for toxic chemicals.
-      Product Name/Context: ${input.productName || 'Scanned Label'}
-      Source URL: ${input.url || 'N/A'}
-      Please perform a deep-search audit and return a clinical report.
+      Audit Command: Conduct a toxicological clinical audit.
+      Category: ${input.category}
+      Target: ${input.productName || 'Optical Scanned Material'}
+      
+      Provide a highly accurate "riskScore" using the additive rubric. 
+      In "scoreExplanation", detail exactly which ingredients added how many points to the total.
     `;
 
     const parts: any[] = [{ text: prompt }];
@@ -53,15 +66,17 @@ export class GeminiService {
         model: "gemini-3-pro-preview",
         contents: [{ role: 'user', parts }],
         config: {
-          systemInstruction,
+          systemInstruction: getSystemInstruction(input.category),
           tools: [{ googleSearch: {} }],
-          temperature: 0.1,
+          temperature: 0, // Force lowest variance
+          seed: 42,      // Ensure deterministic output for identical inputs
           responseMimeType: "application/json",
           responseSchema: {
             type: Type.OBJECT,
             properties: {
               productName: { type: Type.STRING },
               riskScore: { type: Type.NUMBER },
+              scoreExplanation: { type: Type.STRING, description: "Detailed breakdown of the math used to reach the score" },
               overallFlag: { type: Type.STRING, enum: Object.values(SafetyFlag) },
               summary: { type: Type.STRING },
               longTermEffects: { type: Type.STRING },
@@ -92,40 +107,24 @@ export class GeminiService {
                   }
                 }
               },
-              nutritionalInsights: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    fact: { type: Type.STRING },
-                    effect: { type: Type.STRING },
-                    impact: { type: Type.STRING, enum: ["Positive", "Negative", "Neutral"] }
-                  }
-                }
-              },
-              error: { type: Type.STRING, enum: ["NOT_FOOD_OR_BLURRY", "SEARCH_FAILED"] },
-              errorMessage: { type: Type.STRING }
+              error: { type: Type.STRING, enum: ["NOT_FOOD_OR_BLURRY", "SEARCH_FAILED"] }
             },
-            required: ["productName", "riskScore", "overallFlag", "summary", "longTermEffects", "ingredients"]
+            required: ["productName", "riskScore", "scoreExplanation", "overallFlag", "summary", "longTermEffects", "ingredients"]
           }
         }
       });
 
-      const text = response.text;
-      if (!text) throw new Error("Empty response from clinical engine.");
+      const result = JSON.parse(response.text) as AnalysisResult;
+      result.category = input.category;
       
-      const result = JSON.parse(text) as AnalysisResult;
-      
-      // Integrate Grounding Sources
       const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
       if (groundingMetadata?.groundingChunks) {
-        const searchSources = groundingMetadata.groundingChunks
+        result.verifiedSources = groundingMetadata.groundingChunks
           .filter((chunk: any) => chunk.web)
           .map((chunk: any) => ({
             title: chunk.web.title,
             uri: chunk.web.uri
           }));
-        result.verifiedSources = (result.verifiedSources || []).concat(searchSources);
       }
 
       result.scannedImages = input.imageDatas;

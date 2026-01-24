@@ -1,7 +1,14 @@
+
 export enum SafetyFlag {
   RED = 'RED',       // High Hazard
   YELLOW = 'YELLOW', // Caution / Moderate Hazard
   GREEN = 'GREEN'    // Safe / Purity
+}
+
+export enum ProductCategory {
+  FOOD = 'FOOD',
+  COSMETICS = 'COSMETICS',
+  MEDICINE = 'MEDICINE'
 }
 
 export interface IngredientAnalysis {
@@ -28,18 +35,19 @@ export interface NutritionalEffect {
 
 export interface AnalysisResult {
   productName: string;
+  category: ProductCategory;
   riskScore: number;
+  scoreExplanation: string; // New field for consistency tracking
   overallFlag: SafetyFlag;
   summary: string;
   longTermEffects: string;
   ingredients: IngredientAnalysis[];
   productLabels?: ProductLabel[];
-  nutritionalInsights: NutritionalEffect[];
+  nutritionalInsights?: NutritionalEffect[];
   verifiedSources: { title: string; uri: string; type?: 'article' | 'video' | 'research' }[];
   scannedImages?: string[];
-  // Handling invalid inputs
   error?: "NOT_FOOD_OR_BLURRY" | "SEARCH_FAILED";
   errorMessage?: string;
 }
 
-export type LoadingState = 'idle' | 'scanning' | 'searching' | 'analyzing' | 'error' | 'camera';
+export type LoadingState = 'idle' | 'category_selection' | 'scanning' | 'searching' | 'analyzing' | 'error' | 'camera';
