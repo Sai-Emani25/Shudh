@@ -82,8 +82,8 @@ export const AnalysisView: React.FC<{ result: AnalysisResult; onReset: () => voi
 
       if (navigator.share) {
         await navigator.share({
-          title: `Shudh PDF Audit: ${result.productName}`,
-          text: `Download clinical audit for ${result.productName}`,
+          title: `Shudh Clinical Audit: ${result.productName}`,
+          text: `Download evidence-based health audit for ${result.productName}`,
           url: shareUrl
         });
         setShareStatus('success');
@@ -146,11 +146,11 @@ export const AnalysisView: React.FC<{ result: AnalysisResult; onReset: () => voi
           <div className="flex-1">
             <div className="flex items-center gap-4 mb-6">
               <span className={`bg-${theme.primary} text-white text-[10px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-lg shadow-${theme.primary}/20`}>
-                {result.category} AUDIT
+                {result.category} CLINICAL AUDIT
               </span>
               <div className="h-px flex-1 bg-slate-100"></div>
               <h4 className="text-[10px] font-black uppercase text-emerald-500 tracking-widest flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100">
-                <i className="fa-solid fa-shield-check"></i> Clinical Grounding Active
+                <i className="fa-solid fa-shield-check"></i> Evidence-Based Grounding
               </h4>
             </div>
             
@@ -165,10 +165,10 @@ export const AnalysisView: React.FC<{ result: AnalysisResult; onReset: () => voi
             <div className="mb-10 bg-slate-50 border border-slate-100 p-6 rounded-3xl">
               <div className="flex items-center justify-between mb-4">
                 <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] flex items-center gap-2">
-                  <i className="fa-solid fa-microscope text-slate-400"></i> Clinical Reasoning
+                  <i className="fa-solid fa-microscope text-slate-400"></i> Regulatory Findings
                 </h4>
                 <div className="text-[9px] font-black text-blue-500 uppercase tracking-widest flex items-center gap-1.5 bg-blue-50 px-2 py-1 rounded-md">
-                   <i className="fa-solid fa-magnifying-glass-chart"></i> Supplemented from Web
+                   <i className="fa-solid fa-magnifying-glass-chart"></i> Cross-Referenced formulation
                 </div>
               </div>
               <p className="text-sm font-medium text-slate-500 leading-relaxed italic">{result.scoreExplanation}</p>
@@ -181,10 +181,10 @@ export const AnalysisView: React.FC<{ result: AnalysisResult; onReset: () => voi
             </div>
             <div className="flex justify-between items-end mb-6 relative z-10">
               <div>
-                <h4 className="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em] mb-2">Hazard Rating</h4>
+                <h4 className="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em] mb-2">Toxicity Level</h4>
                 <div className="flex items-center gap-2">
                   <span className={`w-2.5 h-2.5 rounded-full bg-${result.riskScore < 30 ? 'emerald' : result.riskScore < 70 ? 'amber' : 'rose'}-500 animate-pulse`}></span>
-                  <span className={`text-[10px] font-black ${result.riskScore < 30 ? 'text-emerald-600' : result.riskScore < 70 ? 'text-amber-600' : 'text-rose-600'} uppercase tracking-widest`}>Clinical Grade</span>
+                  <span className={`text-[10px] font-black ${result.riskScore < 30 ? 'text-emerald-600' : result.riskScore < 70 ? 'text-amber-600' : 'text-rose-600'} uppercase tracking-widest`}>Regulatory Grade</span>
                 </div>
               </div>
               <p className="text-6xl font-black tracking-tighter">{result.riskScore}<span className="text-base text-slate-300 font-bold">/100</span></p>
@@ -195,7 +195,7 @@ export const AnalysisView: React.FC<{ result: AnalysisResult; onReset: () => voi
                 style={{ width: `${result.riskScore}%` }}
               ></div>
             </div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase text-center tracking-widest">Fact-Check Verfied</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase text-center tracking-widest">Clinically Verified Formulation</p>
           </div>
         </div>
 
@@ -204,7 +204,7 @@ export const AnalysisView: React.FC<{ result: AnalysisResult; onReset: () => voi
             <i className="fa-solid fa-biohazard text-8xl"></i>
           </div>
           <h4 className="text-[11px] font-black uppercase tracking-[0.3em] text-emerald-400 mb-8 flex items-center gap-3">
-            <i className="fa-solid fa-dna animate-pulse"></i> Long-Term Bio-Audit
+            <i className="fa-solid fa-dna animate-pulse"></i> Bio-Accumulation Risk
           </h4>
           <p className="text-xl font-medium leading-relaxed text-slate-300 italic relative z-10 max-w-3xl">
             {result.longTermEffects}
@@ -213,9 +213,9 @@ export const AnalysisView: React.FC<{ result: AnalysisResult; onReset: () => voi
 
         <div className="space-y-12 mb-16">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-black uppercase tracking-[0.4em] text-slate-400">Chemical Fact-Check</h3>
+            <h3 className="text-xs font-black uppercase tracking-[0.4em] text-slate-400">Ingredient Clinical Review</h3>
             <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
-               {result.ingredients.length} Compounds Audited
+               {result.ingredients.length} Compounds Analyzed
             </div>
           </div>
           
@@ -224,7 +224,7 @@ export const AnalysisView: React.FC<{ result: AnalysisResult; onReset: () => voi
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                 <div className="flex items-center gap-4">
                   <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl bg-white shadow-sm border border-slate-100`}>
-                    <i className="fa-solid fa-atom text-slate-300 group-hover:text-emerald-500 transition-colors"></i>
+                    <i className="fa-solid fa-atom text-slate-300"></i>
                   </div>
                   <div>
                     <h4 className="font-black text-3xl text-slate-900 tracking-tight">{ing.name}</h4>
@@ -232,7 +232,7 @@ export const AnalysisView: React.FC<{ result: AnalysisResult; onReset: () => voi
                       <span className="text-[11px] font-black uppercase tracking-[0.3em] opacity-50 block">{ing.category}</span>
                       <span className="w-1 h-1 rounded-full bg-slate-300"></span>
                       <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-1.5 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
-                        <i className="fa-solid fa-circle-check"></i> Fact-Checked
+                        <i className="fa-solid fa-circle-check"></i> Scientific Data
                       </span>
                     </div>
                   </div>
@@ -241,12 +241,15 @@ export const AnalysisView: React.FC<{ result: AnalysisResult; onReset: () => voi
                   {(FLAG_ICONS as any)[ing.flag]} {ing.flag}
                 </div>
               </div>
-              <p className="text-lg font-medium text-slate-800 leading-relaxed mb-8">{ing.description}</p>
+              
+              <div className="mb-8 p-6 bg-slate-50/50 rounded-2xl border border-slate-100">
+                <p className="text-lg font-medium text-slate-800 leading-relaxed">{ing.description}</p>
+              </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-rose-50/50 p-6 rounded-[2rem] border border-rose-100">
                   <h5 className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-600 mb-4 flex items-center gap-2">
-                    <i className="fa-solid fa-triangle-exclamation"></i> Potential Risks (Cons)
+                    <i className="fa-solid fa-triangle-exclamation"></i> Health Risks
                   </h5>
                   <ul className="space-y-2">
                     {ing.potentialRisks.map((risk, idx) => (
@@ -260,7 +263,7 @@ export const AnalysisView: React.FC<{ result: AnalysisResult; onReset: () => voi
 
                 <div className="bg-emerald-50/50 p-6 rounded-[2rem] border border-emerald-100">
                   <h5 className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 mb-4 flex items-center gap-2">
-                    <i className="fa-solid fa-vial-circle-check"></i> Functional Benefits (Pros)
+                    <i className="fa-solid fa-vial-circle-check"></i> Purpose / Benefits
                   </h5>
                   <ul className="space-y-2">
                     {ing.benefits.map((benefit, idx) => (
@@ -279,7 +282,7 @@ export const AnalysisView: React.FC<{ result: AnalysisResult; onReset: () => voi
         {result.verifiedSources && result.verifiedSources.length > 0 && (
           <div className="bg-slate-50 rounded-[3rem] p-10 border border-slate-100 no-print">
             <h4 className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400 mb-8 flex items-center gap-3">
-              <i className="fa-solid fa-database text-emerald-500"></i> Clinical Evidence Grounding
+              <i className="fa-solid fa-database text-emerald-500"></i> Regulatory Citations & Research
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {result.verifiedSources.map((source, idx) => (
@@ -302,7 +305,7 @@ export const AnalysisView: React.FC<{ result: AnalysisResult; onReset: () => voi
       </div>
       
       <div className="text-center pb-20 no-print">
-        <p className="text-[11px] font-black text-slate-300 uppercase tracking-[0.4em]">Audit Fact-Checked by Shudh clinical AI</p>
+        <p className="text-[11px] font-black text-slate-300 uppercase tracking-[0.4em]">Audit Fact-Checked by Shudh Regulatory AI Engine</p>
       </div>
     </div>
   );
