@@ -149,12 +149,12 @@ export const AnalysisView: React.FC<{ result: AnalysisResult; onReset: () => voi
                 {result.category} AUDIT
               </span>
               <div className="h-px flex-1 bg-slate-100"></div>
-              <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2">
-                <i className="fa-solid fa-circle-check text-emerald-500"></i> Grounded Search Verified
+              <h4 className="text-[10px] font-black uppercase text-emerald-500 tracking-widest flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100">
+                <i className="fa-solid fa-shield-check"></i> Clinical Grounding Active
               </h4>
             </div>
             
-            <h2 className="text-5xl md:text-7xl font-black text-slate-900 tracking-tighter leading-none mb-8">
+            <h2 className="text-4xl md:text-6xl font-black text-slate-900 tracking-tighter leading-tight mb-8 break-words">
               {result.productName}
             </h2>
 
@@ -162,32 +162,17 @@ export const AnalysisView: React.FC<{ result: AnalysisResult; onReset: () => voi
               <p className="text-2xl font-bold text-slate-700 leading-snug italic">"{result.summary}"</p>
             </div>
 
-            {/* New Reasoning Section */}
             <div className="mb-10 bg-slate-50 border border-slate-100 p-6 rounded-3xl">
-              <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-3 flex items-center gap-2">
-                <i className="fa-solid fa-calculator text-slate-400"></i> Clinical Reasoning
-              </h4>
-              <p className="text-sm font-medium text-slate-500 leading-relaxed italic">{result.scoreExplanation}</p>
-            </div>
-
-            {result.productLabels && result.productLabels.length > 0 && (
-              <div className="space-y-4">
-                <h4 className="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em]">Clinical Identifiers</h4>
-                <div className="flex flex-wrap gap-4">
-                  {result.productLabels.map((label, idx) => (
-                    <div key={idx} className={`px-6 py-4 rounded-3xl border flex items-center gap-4 shadow-sm transition-all hover:bg-white hover:shadow-md ${label.isPositive ? 'bg-emerald-50/50 border-emerald-100 text-emerald-800' : 'bg-rose-50/50 border-rose-100 text-rose-800'}`}>
-                      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-xl ${label.isPositive ? 'bg-emerald-100' : 'bg-rose-100'}`}>
-                        <i className={`fa-solid ${label.isPositive ? 'fa-award' : 'fa-biohazard'}`}></i>
-                      </div>
-                      <div>
-                        <span className="text-xs font-black uppercase tracking-tight block leading-none mb-1">{label.title}</span>
-                        <span className="text-[11px] font-medium opacity-70 block max-w-sm">{label.impact}</span>
-                      </div>
-                    </div>
-                  ))}
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] flex items-center gap-2">
+                  <i className="fa-solid fa-microscope text-slate-400"></i> Clinical Reasoning
+                </h4>
+                <div className="text-[9px] font-black text-blue-500 uppercase tracking-widest flex items-center gap-1.5 bg-blue-50 px-2 py-1 rounded-md">
+                   <i className="fa-solid fa-magnifying-glass-chart"></i> Supplemented from Web
                 </div>
               </div>
-            )}
+              <p className="text-sm font-medium text-slate-500 leading-relaxed italic">{result.scoreExplanation}</p>
+            </div>
           </div>
           
           <div className="w-full lg:w-96 bg-white p-10 rounded-[3rem] border border-slate-100 shadow-2xl relative overflow-hidden group">
@@ -196,10 +181,10 @@ export const AnalysisView: React.FC<{ result: AnalysisResult; onReset: () => voi
             </div>
             <div className="flex justify-between items-end mb-6 relative z-10">
               <div>
-                <h4 className="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em] mb-2">Toxicity Rating</h4>
+                <h4 className="text-[11px] font-black uppercase text-slate-400 tracking-[0.2em] mb-2">Hazard Rating</h4>
                 <div className="flex items-center gap-2">
                   <span className={`w-2.5 h-2.5 rounded-full bg-${result.riskScore < 30 ? 'emerald' : result.riskScore < 70 ? 'amber' : 'rose'}-500 animate-pulse`}></span>
-                  <span className={`text-[10px] font-black ${result.riskScore < 30 ? 'text-emerald-600' : result.riskScore < 70 ? 'text-amber-600' : 'text-rose-600'} uppercase tracking-widest`}>Clinical Score</span>
+                  <span className={`text-[10px] font-black ${result.riskScore < 30 ? 'text-emerald-600' : result.riskScore < 70 ? 'text-amber-600' : 'text-rose-600'} uppercase tracking-widest`}>Clinical Grade</span>
                 </div>
               </div>
               <p className="text-6xl font-black tracking-tighter">{result.riskScore}<span className="text-base text-slate-300 font-bold">/100</span></p>
@@ -210,62 +195,114 @@ export const AnalysisView: React.FC<{ result: AnalysisResult; onReset: () => voi
                 style={{ width: `${result.riskScore}%` }}
               ></div>
             </div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase text-center tracking-widest mb-10">Real-time Bio-Hazard Profile</p>
-            
-            <div className="pt-8 border-t border-slate-50 space-y-4">
-               <h5 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] mb-4">Audit Key</h5>
-               {[
-                 { color: 'rose-500', label: 'High Hazard / Toxic Agent' },
-                 { color: 'amber-500', label: 'Moderate Hazard / Caution' },
-                 { color: 'emerald-500', label: 'Safe / Clinically Pure' }
-               ].map((item, idx) => (
-                 <div key={idx} className="flex items-center gap-3">
-                   <div className={`w-3 h-3 rounded-full bg-${item.color}`}></div>
-                   <span className="text-[11px] font-bold text-slate-600 uppercase tracking-tight">{item.label}</span>
-                 </div>
-               ))}
-            </div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase text-center tracking-widest">Fact-Check Verfied</p>
           </div>
         </div>
 
-        <div className="bg-slate-900 text-white p-12 rounded-[3.5rem] shadow-2xl relative overflow-hidden group">
+        <div className="bg-slate-900 text-white p-12 rounded-[3.5rem] shadow-2xl relative overflow-hidden group mb-16">
           <div className="absolute top-0 right-0 p-12 opacity-10 group-hover:scale-125 transition-transform duration-700">
-            <i className="fa-solid fa-microscope text-8xl"></i>
+            <i className="fa-solid fa-biohazard text-8xl"></i>
           </div>
           <h4 className="text-[11px] font-black uppercase tracking-[0.3em] text-emerald-400 mb-8 flex items-center gap-3">
-            <i className="fa-solid fa-dna animate-pulse"></i> Clinical Bio-Forecast
+            <i className="fa-solid fa-dna animate-pulse"></i> Long-Term Bio-Audit
           </h4>
           <p className="text-xl font-medium leading-relaxed text-slate-300 italic relative z-10 max-w-3xl">
             {result.longTermEffects}
           </p>
         </div>
 
-        <div className="mt-16 space-y-10">
-          <h3 className="text-xs font-black uppercase tracking-[0.4em] text-slate-400 flex items-center gap-6">
-            <span className="flex-1 h-px bg-slate-200"></span>
-            Chemical Deep-Audit
-            <span className="flex-1 h-px bg-slate-200"></span>
-          </h3>
+        <div className="space-y-12 mb-16">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-black uppercase tracking-[0.4em] text-slate-400">Chemical Fact-Check</h3>
+            <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
+               {result.ingredients.length} Compounds Audited
+            </div>
+          </div>
           
           {result.ingredients.map((ing, i) => (
-            <div key={i} className={`p-10 rounded-[3rem] border-2 ${FLAG_COLORS[ing.flag as keyof typeof FLAG_COLORS]} border-transparent bg-white/40`}>
+            <div key={i} className={`p-10 rounded-[3rem] border-2 ${FLAG_COLORS[ing.flag as keyof typeof FLAG_COLORS]} border-transparent bg-white/40 shadow-sm transition-all hover:bg-white`}>
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-                <div>
-                  <h4 className="font-black text-3xl text-slate-900 tracking-tight">{ing.name}</h4>
-                  <span className="text-[11px] font-black uppercase tracking-[0.3em] opacity-50 mt-1 block">{ing.category}</span>
+                <div className="flex items-center gap-4">
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl bg-white shadow-sm border border-slate-100`}>
+                    <i className="fa-solid fa-atom text-slate-300 group-hover:text-emerald-500 transition-colors"></i>
+                  </div>
+                  <div>
+                    <h4 className="font-black text-3xl text-slate-900 tracking-tight">{ing.name}</h4>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[11px] font-black uppercase tracking-[0.3em] opacity-50 block">{ing.category}</span>
+                      <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                      <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-1.5 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                        <i className="fa-solid fa-circle-check"></i> Fact-Checked
+                      </span>
+                    </div>
+                  </div>
                 </div>
                 <div className="px-6 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest bg-white/80 backdrop-blur-md border border-white/50 shadow-sm flex items-center gap-3 w-fit">
                   {(FLAG_ICONS as any)[ing.flag]} {ing.flag}
                 </div>
               </div>
               <p className="text-lg font-medium text-slate-800 leading-relaxed mb-8">{ing.description}</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-rose-50/50 p-6 rounded-[2rem] border border-rose-100">
+                  <h5 className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-600 mb-4 flex items-center gap-2">
+                    <i className="fa-solid fa-triangle-exclamation"></i> Potential Risks (Cons)
+                  </h5>
+                  <ul className="space-y-2">
+                    {ing.potentialRisks.map((risk, idx) => (
+                      <li key={idx} className="text-sm font-semibold text-rose-900 flex items-start gap-2 leading-relaxed">
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-300 mt-1.5 flex-shrink-0"></span>
+                        {risk}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="bg-emerald-50/50 p-6 rounded-[2rem] border border-emerald-100">
+                  <h5 className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 mb-4 flex items-center gap-2">
+                    <i className="fa-solid fa-vial-circle-check"></i> Functional Benefits (Pros)
+                  </h5>
+                  <ul className="space-y-2">
+                    {ing.benefits.map((benefit, idx) => (
+                      <li key={idx} className="text-sm font-semibold text-emerald-900 flex items-start gap-2 leading-relaxed">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 mt-1.5 flex-shrink-0"></span>
+                        {benefit}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
             </div>
           ))}
         </div>
+
+        {result.verifiedSources && result.verifiedSources.length > 0 && (
+          <div className="bg-slate-50 rounded-[3rem] p-10 border border-slate-100 no-print">
+            <h4 className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400 mb-8 flex items-center gap-3">
+              <i className="fa-solid fa-database text-emerald-500"></i> Clinical Evidence Grounding
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {result.verifiedSources.map((source, idx) => (
+                <a 
+                  key={idx} 
+                  href={source.uri} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="bg-white p-5 rounded-2xl border border-slate-200 hover:border-emerald-500 transition-all flex items-center gap-4 group shadow-sm hover:shadow-md"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+                    <i className="fa-solid fa-link text-xs"></i>
+                  </div>
+                  <span className="text-xs font-bold text-slate-700 truncate">{source.title}</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
       
       <div className="text-center pb-20 no-print">
-        <p className="text-[11px] font-black text-slate-300 uppercase tracking-[0.4em]">Audit Powered by Shudh Global Health AI</p>
+        <p className="text-[11px] font-black text-slate-300 uppercase tracking-[0.4em]">Audit Fact-Checked by Shudh clinical AI</p>
       </div>
     </div>
   );

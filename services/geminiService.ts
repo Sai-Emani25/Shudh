@@ -12,41 +12,42 @@ export class GeminiService {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
     const getSystemInstruction = (category: ProductCategory) => {
-      const base = `You are the "Shudh Global Health Auditor". Your objective is to perform a clinical toxicological audit. To ensure 100% consistency and prevent hallucination, you MUST follow this strict additive scoring rubric:
+      const base = `You are the "Shudh Global Health Auditor". Your objective is to perform a rigorous, clinical fact-check of ingredients.
       
-      SCORING RUBRIC (Base Score 0, Max 100):
-      - Presence of Confirmed Carcinogen (IARC Group 1/2A): +40 points
-      - Confirmed Endocrine Disruptor (EDC): +30 points
-      - Known Neurotoxin: +25 points
-      - High Hazard Preservative (BHA/BHT/Parabens): +20 points
-      - Artificial Dye/Synthetic Fragrance: +10 points
-      - Moderate Allergen/Irritant: +5 points
+      CRITICAL RULE 1 (Comprehensive Audit): If the provided images are partial, blurry, or missing sections, you MUST use the googleSearch tool to find the FULL, OFFICIAL ingredient list for the identified product. Do not guess; search and supplement missing data.
       
-      REQUIRED SEARCH STEPS:
-      1. Search for "[Ingredient Name] safety profile" on EWG Skin Deep, FDA, or PubChem.
-      2. If multiple sources conflict, prioritize clinical research over consumer blogs.
-      3. Do NOT invent risks; if an ingredient is "Generally Recognized as Safe" (GRAS), its score impact is 0.`;
+      CRITICAL RULE 2 (Identification): Identify the Brand and EXACT Product Variant from the packaging (e.g., "Doritos Nacho Cheese" vs just "Chips"). The "productName" must be specific.
+      
+      CRITICAL RULE 3 (Zero Trust): Never trust marketing labels like "All Natural" or "Physician Recommended". If your clinical search finds hazardous chemicals not explicitly mentioned in a positive light on the label, you MUST flag them.
+      
+      GROUNDING REQUIREMENT: Use googleSearch to:
+      1. Cross-reference the identified product with databases like EWG Skin Deep, FDA GRAS, PubChem, and IARC.
+      2. If an ingredient is missing from the scan but is standard for that specific product variant, include it in the audit.
+      3. Verify if any ingredient is banned or restricted in the EU, Canada, or California (Prop 65).
+
+      PROS & CONS: For EVERY ingredient, provide at least 2 potential health risks (Cons) and its functional purpose (Pros) based on search results.`;
       
       switch(category) {
         case ProductCategory.COSMETICS:
           return `${base}
-          CATEGORY FOCUS: Cosmetics & Personal Care. Focus on D4/D5 Siloxanes, PFAS, and Phthalates. Ensure you look up concentrations where available.`;
+          CATEGORY FOCUS: Cosmetics. Verify safety for skin types. Search for Parabens, Phthalates, and synthetic fragrances.`;
         case ProductCategory.MEDICINE:
           return `${base}
-          CATEGORY FOCUS: Pharmaceuticals. Distinguish clearly between the "Active Ingredient" (necessary) and "Excipients" (fillers). Toxic fillers like Talc (if asbestos-linked) or Titanium Dioxide (E171) should be flagged.`;
+          CATEGORY FOCUS: Pharmaceuticals. Identify Active Ingredients vs Fillers. Search for Talc, TiO2, and Dye safety.`;
         default: // FOOD
           return `${base}
-          CATEGORY FOCUS: Food & Beverages. Focus on ultra-processed markers (UPF), emulsifiers (Polysorbate 80), and specific additives like Red 40 or High Fructose Corn Syrup.`;
+          CATEGORY FOCUS: Food. Verify Ultra-Processed (UPF) status. Search for artificial dyes (Red 40, etc.), BHA/BHT, and synthetic sweeteners.`;
       }
     };
 
     const prompt = `
-      Audit Command: Conduct a toxicological clinical audit.
-      Category: ${input.category}
-      Target: ${input.productName || 'Optical Scanned Material'}
+      Clinical Audit Command: 
+      1. ANALYZE IMAGES: Identify product and extract visible ingredients.
+      2. SUPPLEMENT: Use Google Search to find any ingredients or warning labels typically associated with this specific product that might have been missed in the scan.
+      3. VERIFY: Fact-check safety of every chemical.
+      4. SCORE: Calculate risk score (0-100) based on clinical toxicity.
       
-      Provide a highly accurate "riskScore" using the additive rubric. 
-      In "scoreExplanation", detail exactly which ingredients added how many points to the total.
+      Hint (User Input): ${input.productName || 'Identify from images'}
     `;
 
     const parts: any[] = [{ text: prompt }];
@@ -63,20 +64,19 @@ export class GeminiService {
 
     try {
       const response = await ai.models.generateContent({
-        model: "gemini-3-pro-preview",
+        model: "gemini-3-flash-preview", // Flash for low latency
         contents: [{ role: 'user', parts }],
         config: {
           systemInstruction: getSystemInstruction(input.category),
           tools: [{ googleSearch: {} }],
-          temperature: 0, // Force lowest variance
-          seed: 42,      // Ensure deterministic output for identical inputs
+          temperature: 0.1, // Slight temperature for better reasoning
           responseMimeType: "application/json",
           responseSchema: {
             type: Type.OBJECT,
             properties: {
               productName: { type: Type.STRING },
               riskScore: { type: Type.NUMBER },
-              scoreExplanation: { type: Type.STRING, description: "Detailed breakdown of the math used to reach the score" },
+              scoreExplanation: { type: Type.STRING },
               overallFlag: { type: Type.STRING, enum: Object.values(SafetyFlag) },
               summary: { type: Type.STRING },
               longTermEffects: { type: Type.STRING },
@@ -106,8 +106,7 @@ export class GeminiService {
                     isPositive: { type: Type.BOOLEAN }
                   }
                 }
-              },
-              error: { type: Type.STRING, enum: ["NOT_FOOD_OR_BLURRY", "SEARCH_FAILED"] }
+              }
             },
             required: ["productName", "riskScore", "scoreExplanation", "overallFlag", "summary", "longTermEffects", "ingredients"]
           }
@@ -130,7 +129,7 @@ export class GeminiService {
       result.scannedImages = input.imageDatas;
       return result;
     } catch (error: any) {
-      console.error("Clinical Audit Error:", error);
+      console.error("Audit Failure:", error);
       throw error;
     }
   }
