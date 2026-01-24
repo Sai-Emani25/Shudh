@@ -131,8 +131,8 @@ const App: React.FC = () => {
       light: 'bg-emerald-50'
     },
     [ProductCategory.COSMETICS]: { 
-      icon: 'fa-sparkles', 
-      label: 'Dermal & Beauty', 
+      icon: 'fa-spray-can-sparkles', 
+      label: 'Cosmetics', 
       desc: 'Scan for endocrine disruptors and skin toxins.',
       theme: 'rose',
       accent: 'bg-rose-500',
