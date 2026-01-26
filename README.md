@@ -197,7 +197,8 @@ Please ensure your code follows the existing style and includes appropriate test
 
 ### API Key Issues
 - Ensure your Google Gemini API key is valid and has not exceeded quota
-- Check that the API key is properly configured in `services/geminiService.ts`
+- Verify the `.env` file exists in the project root with the correct format: `GEMINI_API_KEY=your_key`
+- Check the API key has no extra spaces or quotes around it
 
 ### Camera Not Working
 - Grant camera permissions in your browser
