@@ -72,8 +72,14 @@
    
    You'll need a Google Gemini API key to use the analysis features:
    - Visit [Google AI Studio](https://aistudio.google.com/app/apikey)
-   - Generate an API key
-   - Update the key in your application (check `services/geminiService.ts`)
+   - Generate an API key (free tier available)
+   - Create a `.env` file in the project root:
+     ```bash
+     echo "GEMINI_API_KEY=your_actual_api_key_here" > .env
+     ```
+   - Replace `your_actual_api_key_here` with your actual API key
+   
+   **Note**: The `.env` file is already included in `.gitignore` to keep your API key secure.
 
 4. **Run the development server**
    ```bash
@@ -142,20 +148,25 @@ Shudh/
 
 ---
 
-## 🔮 Roadmap
+## 🎯 Status & Roadmap
 
-- [x] Core scanning engine
-- [x] AI-powered ingredient analysis
-- [x] Multi-category support (Food, Cosmetics, Medicine)
-- [x] Category-specific theming
-- [ ] Barcode scanning (UPC/EAN)
+### ✅ Completed Features
+- Core scanning engine with image upload and camera support
+- AI-powered ingredient analysis using Google Gemini
+- Multi-category support (Food, Cosmetics, Medicine)
+- Category-specific theming and user experience
+- Safety scoring system with color-coded flags
+- Shareable result links with encoded data
+
+### 🔮 Upcoming Features
+- [ ] Barcode scanning (UPC/EAN) for quick product lookup
 - [ ] User profiles & analysis history
-- [ ] Offline mode with local database
+- [ ] Offline mode with local ingredient database
 - [ ] Multi-language support (Hindi + regional languages)
-- [ ] Browser extension
-- [ ] Android/iOS native apps
-- [ ] Community ingredient database
-- [ ] API for third-party integration
+- [ ] Browser extension for on-the-go checking
+- [ ] Android/iOS native applications
+- [ ] Community-driven ingredient database
+- [ ] Public API for third-party integration
 
 ---
 
