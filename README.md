@@ -131,7 +131,7 @@ This project is licensed under the **MIT License** - Free to use, modify, and di
 **Sai Emani**
 
 - GitHub: [@Sai-Emani25](https://github.com/Sai-Emani25)
-- Location: Hosapete, Karnataka, India
+- Location: Bangalore, Karnataka, India
 
 ---
 
