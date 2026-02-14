@@ -21,6 +21,34 @@ export const Taskr: React.FC<{ result: AnalysisResult; onClose: () => void }> = 
   const reportRef = useRef<HTMLDivElement>(null);
   const theme = CATEGORY_THEMES[result.category] || CATEGORY_THEMES.FOOD;
 
+  // Helper function to get category-specific badge classes
+  const getCategoryBadgeClass = (category: ProductCategory): string => {
+    switch (category) {
+      case ProductCategory.FOOD:
+        return 'bg-emerald-600 text-white text-[10px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-lg shadow-emerald-600/20';
+      case ProductCategory.COSMETICS:
+        return 'bg-rose-500 text-white text-[10px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-lg shadow-rose-500/20';
+      case ProductCategory.MEDICINE:
+        return 'bg-blue-600 text-white text-[10px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-lg shadow-blue-600/20';
+      default:
+        return 'bg-emerald-600 text-white text-[10px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-lg shadow-emerald-600/20';
+    }
+  };
+
+  // Helper function to get category-specific border classes
+  const getCategoryBorderClass = (category: ProductCategory): string => {
+    switch (category) {
+      case ProductCategory.FOOD:
+        return 'bg-emerald-50/50 border-l-8 border-emerald-600 p-8 rounded-r-[2.5rem] mb-6 shadow-sm';
+      case ProductCategory.COSMETICS:
+        return 'bg-rose-50/50 border-l-8 border-rose-500 p-8 rounded-r-[2.5rem] mb-6 shadow-sm';
+      case ProductCategory.MEDICINE:
+        return 'bg-blue-50/50 border-l-8 border-blue-600 p-8 rounded-r-[2.5rem] mb-6 shadow-sm';
+      default:
+        return 'bg-emerald-50/50 border-l-8 border-emerald-600 p-8 rounded-r-[2.5rem] mb-6 shadow-sm';
+    }
+  };
+
   // Generate tasks based on the analysis result
   const generateTasks = (): Task[] => {
     const tasks: Task[] = [];
@@ -193,13 +221,7 @@ export const Taskr: React.FC<{ result: AnalysisResult; onClose: () => void }> = 
         <div className="flex flex-col lg:flex-row gap-12 items-start mb-14 relative z-10">
           <div className="flex-1">
             <div className="flex items-center gap-4 mb-6">
-              <span className={
-                result.category === 'FOOD' 
-                  ? 'bg-emerald-600 text-white text-[10px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-lg shadow-emerald-600/20'
-                  : result.category === 'COSMETICS'
-                  ? 'bg-rose-500 text-white text-[10px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-lg shadow-rose-500/20'
-                  : 'bg-blue-600 text-white text-[10px] font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-lg shadow-blue-600/20'
-              }>
+              <span className={getCategoryBadgeClass(result.category as ProductCategory)}>
                 {result.category} ACTION PLAN
               </span>
               <div className="h-px flex-1 bg-slate-100"></div>
@@ -212,13 +234,7 @@ export const Taskr: React.FC<{ result: AnalysisResult; onClose: () => void }> = 
               Taskr Report: {result.productName}
             </h2>
 
-            <div className={
-              result.category === 'FOOD'
-                ? 'bg-emerald-50/50 border-l-8 border-emerald-600 p-8 rounded-r-[2.5rem] mb-6 shadow-sm'
-                : result.category === 'COSMETICS'
-                ? 'bg-rose-50/50 border-l-8 border-rose-500 p-8 rounded-r-[2.5rem] mb-6 shadow-sm'
-                : 'bg-blue-50/50 border-l-8 border-blue-600 p-8 rounded-r-[2.5rem] mb-6 shadow-sm'
-            }>
+            <div className={getCategoryBorderClass(result.category as ProductCategory)}>
               <p className="text-2xl font-bold text-slate-700 leading-snug italic">
                 "Action-oriented recommendations based on your product audit."
               </p>
@@ -238,7 +254,14 @@ export const Taskr: React.FC<{ result: AnalysisResult; onClose: () => void }> = 
                   <span className="text-xs font-medium text-slate-400">{Math.round(progressPercentage)}% Done</span>
                 </div>
               </div>
-              <div className="h-5 w-full bg-slate-100 rounded-full overflow-hidden mb-5 p-1 border border-slate-50">
+              <div 
+                className="h-5 w-full bg-slate-100 rounded-full overflow-hidden mb-5 p-1 border border-slate-50"
+                role="progressbar"
+                aria-valuenow={Math.round(progressPercentage)}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="Task completion progress"
+              >
                 <div 
                   className="h-full rounded-full transition-all duration-500 ease-out shadow-inner bg-emerald-500"
                   style={{ width: `${progressPercentage}%` }}
