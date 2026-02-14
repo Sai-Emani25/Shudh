@@ -4,6 +4,7 @@ import { AnalysisResult, LoadingState, ProductCategory, SafetyFlag } from './typ
 import { GeminiService } from './services/geminiService.ts';
 import { AnalysisView } from './components/AnalysisView.tsx';
 import { CameraScanner } from './components/CameraScanner.tsx';
+import { Taskr } from './components/Taskr.tsx';
 import { APP_NAME, CATEGORY_THEMES } from './constants.tsx';
 
 const App: React.FC = () => {
@@ -14,6 +15,7 @@ const App: React.FC = () => {
   const [nameInput, setNameInput] = useState('');
   const [error, setError] = useState<{ message: string; title: string; troubleshooting: string[] } | null>(null);
   const [autoDownload, setAutoDownload] = useState(false);
+  const [showTaskr, setShowTaskr] = useState(false);
   
   const geminiService = useRef(new GeminiService());
 
@@ -147,6 +149,7 @@ const App: React.FC = () => {
     setError(null);
     setNameInput('');
     setAutoDownload(false);
+    setShowTaskr(false);
     const newUrl = new URL(window.location.href);
     newUrl.search = '';
     window.history.pushState({}, '', newUrl);
@@ -322,7 +325,8 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {result && <AnalysisView result={result} onReset={reset} autoDownload={autoDownload} />}
+        {result && !showTaskr && <AnalysisView result={result} onReset={reset} autoDownload={autoDownload} onShowTaskr={() => setShowTaskr(true)} />}
+        {result && showTaskr && <Taskr result={result} onClose={() => setShowTaskr(false)} />}
       </main>
     </div>
   );

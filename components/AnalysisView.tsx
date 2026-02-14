@@ -7,7 +7,7 @@ import { FLAG_COLORS, FLAG_ICONS, CATEGORY_THEMES } from '../constants.tsx';
 declare const html2canvas: any;
 declare const jspdf: any;
 
-export const AnalysisView: React.FC<{ result: AnalysisResult; onReset: () => void; autoDownload?: boolean }> = ({ result, onReset, autoDownload }) => {
+export const AnalysisView: React.FC<{ result: AnalysisResult; onReset: () => void; autoDownload?: boolean; onShowTaskr?: () => void }> = ({ result, onReset, autoDownload, onShowTaskr }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [shareStatus, setShareStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const reportRef = useRef<HTMLDivElement>(null);
@@ -106,6 +106,18 @@ export const AnalysisView: React.FC<{ result: AnalysisResult; onReset: () => voi
         </button>
         
         <div className="flex gap-3">
+          {onShowTaskr && (
+            <button 
+              onClick={onShowTaskr}
+              className="flex items-center gap-2 bg-blue-600 px-5 py-3 rounded-2xl shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all active:scale-95"
+            >
+              <i className="fa-solid fa-list-check text-white"></i>
+              <span className="text-[10px] font-black text-white uppercase tracking-widest">
+                View Taskr
+              </span>
+            </button>
+          )}
+          
           <button 
             onClick={generatePDF}
             disabled={isGenerating}
